@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>Coachella Flow · Explorateur de musique</title>
+    <title>Coachella Flow · Playlist Collaborative</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -11,41 +14,40 @@
             box-sizing: border-box;
         }
 
-        /* === FOND D'ÉCRAN AVEC PARALLAXE === */
-        .parallax-bg {
+        /* === FOND D'ÉCRAN ALÉATOIRE === */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 120%;
-            background-image: url('https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=2070&auto=format'); /* Fallback Coachella style */
+            height: 100%;
             background-size: cover;
-            background-position: center 20%;
+            background-position: center center;
             background-repeat: no-repeat;
             filter: brightness(0.35) blur(6px);
-            transform: translateY(0);
-            transition: transform 0.1s ease-out;
             z-index: 0;
-            will-change: transform;
+            transition: opacity 0.5s ease;
         }
-        /* Overlay supplémentaire pour renforcer la lisibilité */
+        
         .overlay-dark {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%);
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%);
             z-index: 1;
             pointer-events: none;
         }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            color: #f5efe8;
-            min-height: 100vh;
-            position: relative;
-            z-index: 2;
-        }
+        
         .container {
             max-width: 680px;
             margin: 0 auto;
@@ -54,14 +56,14 @@
             z-index: 3;
         }
 
-        /* === BARRE DE NAVIGATION DISCRÈTE === */
+        /* === BARRE DE NAVIGATION (sans Explorer) === */
         .nav-bar {
             display: flex;
             justify-content: center;
-            gap: 1.2rem;
+            gap: 1.5rem;
             margin-bottom: 0.8rem;
-            padding: 0.4rem 0;
-            background: rgba(10, 8, 20, 0.4);
+            padding: 0.4rem 1rem;
+            background: rgba(10, 8, 20, 0.5);
             backdrop-filter: blur(10px);
             border-radius: 60px;
             width: fit-content;
@@ -71,19 +73,18 @@
         .nav-link {
             color: #FFE8D6;
             text-decoration: none;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 500;
-            padding: 0.3rem 1rem;
+            padding: 0.4rem 1.2rem;
             border-radius: 40px;
             transition: 0.2s;
-            letter-spacing: 0.5px;
+            cursor: pointer;
         }
         .nav-link:hover, .nav-link.active {
-            background: #F4A26130;
+            background: #F4A26140;
             color: #FFD6A5;
         }
 
-        /* Header Coachella */
         .festival-header {
             text-align: center;
             margin-bottom: 1.2rem;
@@ -107,7 +108,7 @@
             color: #f5e2b0;
         }
 
-        /* Zone de recherche + autocomplete */
+        /* Zone de recherche */
         .search-zone {
             position: relative;
             margin-bottom: 1rem;
@@ -162,14 +163,12 @@
             transition: all 0.2s;
             white-space: nowrap;
             flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         #searchButton:active {
             transform: scale(0.96);
-            background: #cc5a3e;
         }
 
-        /* Autocomplétion */
+        /* Autocomplétion simplifiée */
         .autocomplete-dropdown {
             position: absolute;
             top: calc(100% + 8px);
@@ -183,21 +182,16 @@
             max-height: 280px;
             overflow-y: auto;
             display: none;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.6);
         }
         .autocomplete-item {
             padding: 0.8rem 1.2rem;
             cursor: pointer;
             border-bottom: 1px solid #2e264e;
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-size: 0.9rem;
             color: #f5e2c9;
         }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:hover { background: #F4A26122; }
-        .autocomplete-item strong { color: #FFB347; }
 
         .status {
             text-align: center;
@@ -207,7 +201,6 @@
             min-height: 1.6rem;
         }
 
-        /* Liste verticale */
         .track-list {
             display: flex;
             flex-direction: column;
@@ -215,9 +208,8 @@
             margin-top: 0.5rem;
         }
 
-        /* Carte musique */
         .track-item {
-            background: rgba(18, 15, 32, 0.8);
+            background: rgba(18, 15, 32, 0.85);
             backdrop-filter: blur(6px);
             border-radius: 24px;
             display: flex;
@@ -257,40 +249,46 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        /* styles des 3 types d'étiquettes */
-        .list-badge {
+        
+        /* Badges de statut playlist */
+        .playlist-badge {
             border-radius: 40px;
             padding: 0.4rem 0.8rem;
             font-size: 0.65rem;
             font-weight: 600;
             white-space: nowrap;
             flex-shrink: 0;
-            backdrop-filter: blur(4px);
             text-align: center;
-            cursor: default;
+            cursor: pointer;
+            transition: 0.1s;
         }
         .badge-add {
             background: #E76F51cc;
             color: white;
             border: none;
-            cursor: pointer;
         }
         .badge-add:active {
             transform: scale(0.96);
-            background: #E76F51;
         }
-        .badge-already {
+        .badge-inplaylist {
             background: #2a2548cc;
             color: #b9ab8a;
             border: 1px solid #F4A26180;
+            cursor: default;
         }
         .badge-past {
             background: #4a2f45cc;
             color: #e2bcb0;
             border: 1px solid #d48c6e60;
             text-decoration: line-through;
-            font-style: italic;
+            cursor: default;
         }
+        .badge-loading {
+            background: #555080cc;
+            color: #c0b5e0;
+            cursor: wait;
+        }
+        
         .empty-state {
             background: rgba(0,0,0,0.55);
             border-radius: 32px;
@@ -315,10 +313,6 @@
             transition: 0.2s;
             backdrop-filter: blur(8px);
         }
-        .load-more-btn:active {
-            background: #F4A26130;
-            transform: scale(0.97);
-        }
         .footer-note {
             text-align: center;
             font-size: 0.6rem;
@@ -334,22 +328,20 @@
             .container { padding: 0.8rem; }
             .track-img { width: 52px; height: 52px; border-radius: 14px; }
             .track-title { font-size: 0.85rem; }
-            .search-flex { padding-left: 1rem; gap: 0.3rem; }
-            #searchButton { padding: 0.55rem 1rem; font-size: 0.75rem; }
-            .list-badge { padding: 0.3rem 0.6rem; font-size: 0.6rem; }
+            .playlist-badge { padding: 0.3rem 0.6rem; font-size: 0.6rem; }
         }
     </style>
 </head>
 <body>
-<div class="parallax-bg" id="parallaxBg"></div>
+<div id="dynamicBg" class="dynamic-bg"></div>
 <div class="overlay-dark"></div>
 
 <div class="container">
-    <!-- Barre de navigation discrète -->
+    <!-- Navigation sans "Explorer" -->
     <div class="nav-bar">
-        <a href="#" class="nav-link active">🎵 Accueil</a>
-        <a href="#" class="nav-link" id="fakeExplore">✨ Explorer</a>
-        <a href="#" class="nav-link" id="fakeProfile">👤 Mon festival</a>
+        <a class="nav-link active" data-page="explorer">🎧 Explorer</a>
+        <a class="nav-link" data-page="voter">⭐ Voter</a>
+        <a class="nav-link" data-page="past">📅 Déjà passé</a>
     </div>
 
     <div class="festival-header">
@@ -381,316 +373,419 @@
 </div>
 
 <script>
-    (function() {
-        // Parallaxe simple
-        window.addEventListener('scroll', () => {
-            const scrolled = window.scrollY;
-            const bg = document.getElementById('parallaxBg');
-            if(bg) {
-                bg.style.transform = `translateY(${scrolled * 0.2}px)`;
-            }
-        });
-
-        // DOM Elements
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchButton');
-        const trackContainer = document.getElementById('trackListContainer');
-        const statusDiv = document.getElementById('statusMessage');
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        const autocompleteDiv = document.getElementById('autocompleteList');
-
-        let currentTracks = [];
-        let displayedCount = 0;
-        let fullTracksCount = 0;
-        let currentQuery = "";
-        const BATCH_SIZE = 4;
-        let isLoadingMore = false;
-        let debounceTimer = null;
-
-        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-        function cleanQuery(q) { return q.trim().replace(/\s+/g, ' '); }
-        
-        function getArtistName(recording) {
-            if(recording['artist-credit']?.[0]?.name) return recording['artist-credit'][0].name;
-            if(recording['artist-credit']?.[0]?.artist?.name) return recording['artist-credit'][0].artist.name;
-            if(recording.artists?.[0]?.name) return recording.artists[0].name;
-            return "Artiste";
-        }
-
-        async function fetchCoverArt(recordingId, releaseMbid) {
-            if(releaseMbid) {
-                try {
-                    const res = await fetch(`https://coverartarchive.org/release/${releaseMbid}/front-150`, { method: 'HEAD' });
-                    if(res.ok) return `https://coverartarchive.org/release/${releaseMbid}/front-150`;
-                } catch(e) {}
-            }
-            if(recordingId) {
-                try {
-                    const resp = await fetch(`https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`, {
-                        headers: { 'User-Agent': 'CoachellaFlow/4.0' }
-                    });
-                    if(resp.ok) {
-                        const data = await resp.json();
-                        const releaseId = data.releases?.[0]?.id;
-                        if(releaseId) {
-                            const check = await fetch(`https://coverartarchive.org/release/${releaseId}/front-150`, { method: 'HEAD' });
-                            if(check.ok) return `https://coverartarchive.org/release/${releaseId}/front-150`;
-                        }
-                    }
-                } catch(e) {}
-            }
-            return null;
-        }
-
-        // Fonction pour attribuer un badge selon proba: 1/4 "déjà passée", 2/4 "ajouter", 1/4 "déjà dans la liste"
-        function getRandomBadge() {
-            const rand = Math.random();
-            if(rand < 0.25) {       // 25% => déjà passée
-                return `<span class="list-badge badge-past">✓ Déjà passée</span>`;
-            } else if(rand < 0.75) { // 50% => ajouter (car 0.25 à 0.75 = 0.5)
-                return `<button class="list-badge badge-add" data-action="add">+ Ajouter</button>`;
-            } else {                // 25% => déjà dans la liste
-                return `<span class="list-badge badge-already">✓ Déjà dans la liste</span>`;
-            }
-        }
-
-        async function loadImagesForTracks(tracksSlice, startIndex) {
-            for(let i = 0; i < tracksSlice.length; i++) {
-                const track = tracksSlice[i];
-                const globalIdx = startIndex + i;
-                const card = document.querySelector(`.track-item[data-idx="${globalIdx}"]`);
-                if(!card) continue;
-                const img = card.querySelector('.track-img');
-                if(!img) continue;
-                let cover = null;
-                if(track.releaseMbid) cover = await fetchCoverArt(track.id, track.releaseMbid);
-                if(!cover && track.id) cover = await fetchCoverArt(track.id, null);
-                if(cover) {
-                    img.src = cover;
-                    img.style.objectFit = "cover";
-                } else {
-                    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E";
-                    img.style.objectFit = "contain";
-                    img.style.padding = "8px";
-                }
-            }
-        }
-
-        function renderBatch() {
-            if(!currentTracks.length) {
-                trackContainer.innerHTML = `<div class="empty-state">🎡 Aucune musique trouvée<br>Essayez un artiste ou un titre</div>`;
-                loadMoreBtn.style.display = "none";
-                statusDiv.innerHTML = currentQuery ? `✨ 0 morceau trouvé` : "";
-                return;
-            }
-            const remaining = currentTracks.length - displayedCount;
-            const take = Math.min(BATCH_SIZE, remaining);
-            if(take <= 0) {
-                if(currentTracks.length && displayedCount >= currentTracks.length) loadMoreBtn.style.display = "none";
-                statusDiv.innerHTML = `✨ ${fullTracksCount} morceaux trouvés (${displayedCount} affichés)`;
-                return;
-            }
-            const newSlice = currentTracks.slice(displayedCount, displayedCount + take);
-            const htmlSlice = newSlice.map((track, idx) => {
-                const realIdx = displayedCount + idx;
-                const titleEsc = escapeHtml(track.title);
-                const artistEsc = escapeHtml(track.artist);
-                const badgeHtml = getRandomBadge();
-                return `
-                    <div class="track-item" data-idx="${realIdx}">
-                        <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
-                        <div class="track-info">
-                            <div class="track-title">${titleEsc}</div>
-                            <div class="track-artist">${artistEsc}</div>
-                        </div>
-                        ${badgeHtml}
-                    </div>
-                `;
-            }).join('');
-            
-            if(displayedCount === 0) trackContainer.innerHTML = htmlSlice;
-            else trackContainer.insertAdjacentHTML('beforeend', htmlSlice);
-            
-            loadImagesForTracks(newSlice, displayedCount);
-            displayedCount += take;
-            fullTracksCount = currentTracks.length;
-            statusDiv.innerHTML = `✨ ${fullTracksCount} morceaux trouvés (${displayedCount} affichés)`;
-            
-            if(displayedCount >= currentTracks.length) loadMoreBtn.style.display = "none";
-            else loadMoreBtn.style.display = "flex";
-            
-            // Gestion des clics sur les boutons "Ajouter"
-            document.querySelectorAll('.badge-add').forEach(btn => {
-                if(btn.getAttribute('data-listener')) return;
-                btn.setAttribute('data-listener', 'true');
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    btn.innerText = '✓ Déjà dans la liste';
-                    btn.classList.remove('badge-add');
-                    btn.classList.add('badge-already');
+    // Configuration Firebase
+    const firebaseConfig = {
+        databaseURL: "https://playliste-commune-ball2026-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    
+    // Initialiser Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const playlistRef = database.ref('playlist'); // Stockage simple: { "recordingId": {"u": 1} } ou {"u": -1}
+    
+    // ========== GESTION DES FONDS D'ÉCRAN ALÉATOIRES ==========
+    const backgrounds = [
+        "https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1459749411170-24bf3faf2fa8?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad1a6c5?q=80&w=2070&auto=format"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        const bgElement = document.getElementById('dynamicBg');
+        bgElement.style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+        bgElement.style.opacity = '1';
+    }
+    setRandomBackground();
+    
+    // ========== ÉTAT GLOBAL ==========
+    let currentTracks = [];
+    let displayedCount = 0;
+    let fullTracksCount = 0;
+    let currentQuery = "";
+    const BATCH_SIZE = 4;
+    let isLoadingMore = false;
+    let debounceTimer = null;
+    let playlistCache = new Map(); // Cache local { recordingId: upvotes (1 ou -1) }
+    
+    // ========== CHARGEMENT DE LA PLAYLIST DEPUIS FIREBASE ==========
+    async function loadPlaylistCache() {
+        try {
+            const snapshot = await playlistRef.once('value');
+            const data = snapshot.val();
+            if(data) {
+                Object.keys(data).forEach(key => {
+                    const val = data[key];
+                    // Format compact: { "u": 1 } ou { "u": -1 }
+                    const upvotes = val && typeof val === 'object' ? (val.u || 0) : (typeof val === 'number' ? val : 0);
+                    playlistCache.set(key, upvotes);
                 });
-            });
+            }
+        } catch(e) {
+            console.warn("Erreur chargement playlist", e);
         }
-        
-        function resetAndLoadFirstBatch(tracks) {
-            currentTracks = tracks;
-            displayedCount = 0;
-            fullTracksCount = tracks.length;
-            trackContainer.innerHTML = '';
-            if(tracks.length === 0) renderBatch();
-            else renderBatch();
+    }
+    
+    // Ajouter ou mettre à jour une musique dans Firebase (upvotes = 1)
+    async function addToPlaylist(recordingId, title, artist) {
+        try {
+            const existing = playlistCache.get(recordingId);
+            if(existing === 1) {
+                return { success: false, reason: 'already' };
+            }
+            if(existing === -1) {
+                return { success: false, reason: 'past' };
+            }
+            // Format compact pour économiser: { "u": 1 }
+            await playlistRef.child(recordingId).set({ u: 1 });
+            playlistCache.set(recordingId, 1);
+            return { success: true };
+        } catch(e) {
+            console.error("Firebase write error", e);
+            return { success: false, reason: 'error' };
         }
-        
-        function loadMore() {
-            if(isLoadingMore) return;
-            if(displayedCount >= currentTracks.length) return;
-            isLoadingMore = true;
-            setTimeout(() => { renderBatch(); isLoadingMore = false; }, 60);
-        }
-        
-        // Tri intelligent
-        function smartSort(tracksArray, searchTerm) {
-            if(!searchTerm || tracksArray.length <= 1) return tracksArray;
-            const lowerTerm = searchTerm.toLowerCase();
-            const scored = tracksArray.map(track => {
-                let score = 0;
-                const title = (track.title || '').toLowerCase();
-                const artist = (track.artist || '').toLowerCase();
-                if(title === lowerTerm) score += 100;
-                else if(title.includes(lowerTerm)) score += 50;
-                if(artist === lowerTerm) score += 80;
-                else if(artist.includes(lowerTerm)) score += 40;
-                const words = lowerTerm.split(/\s+/);
-                for(let w of words) if(w.length>2) { if(title.includes(w)) score += 15; if(artist.includes(w)) score += 12; }
-                let releaseCount = track.releasesCount || track.raw?.releases?.length || 0;
-                score += Math.min(releaseCount * 3, 30);
-                return { track, score };
-            });
-            scored.sort((a,b) => b.score - a.score);
-            return scored.map(s => s.track);
-        }
-        
-        async function searchMusic(queryRaw) {
-            const query = cleanQuery(queryRaw);
-            if(!query) return [];
-            const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(query)}&limit=45&fmt=json`;
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+    }
+    
+    // Obtenir le statut d'une musique (basé sur le cache)
+    function getTrackStatus(recordingId) {
+        const upvotes = playlistCache.get(recordingId);
+        if(upvotes === -1) return 'past';
+        if(upvotes === 1) return 'inplaylist';
+        return 'add';
+    }
+    
+    // ========== FONCTIONS MUSICBRAINZ ==========
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function cleanQuery(q) { return q.trim().replace(/\s+/g, ' '); }
+    
+    function getArtistName(recording) {
+        if(recording['artist-credit']?.[0]?.name) return recording['artist-credit'][0].name;
+        if(recording['artist-credit']?.[0]?.artist?.name) return recording['artist-credit'][0].artist.name;
+        if(recording.artists?.[0]?.name) return recording.artists[0].name;
+        return "Artiste";
+    }
+    
+    async function fetchCoverArt(recordingId, releaseMbid) {
+        if(releaseMbid) {
             try {
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json', 'User-Agent': 'CoachellaFlow/4.0' },
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                if(!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                let recordings = data.recordings || [];
-                recordings = recordings.filter(rec => rec.title?.trim());
-                const map = new Map();
-                for(let rec of recordings) {
-                    const artist = getArtistName(rec);
-                    const title = rec.title;
-                    const key = `${title.toLowerCase().trim()}|${artist.toLowerCase().trim()}`;
-                    if(map.has(key)) continue;
-                    let releaseMbid = null, releasesCount = 0;
-                    if(rec.releases?.length) { releaseMbid = rec.releases[0].id; releasesCount = rec.releases.length; }
-                    else if(rec['release-list']?.length) { releaseMbid = rec['release-list'][0].id; releasesCount = rec['release-list'].length; }
-                    map.set(key, { id: rec.id, title, artist, releaseMbid, releasesCount, raw: rec });
-                }
-                return smartSort(Array.from(map.values()), query);
-            } catch(err) { throw new Error(err.name === 'AbortError' ? "Timeout" : "Erreur réseau"); }
+                const res = await fetch(`https://coverartarchive.org/release/${releaseMbid}/front-150`, { method: 'HEAD' });
+                if(res.ok) return `https://coverartarchive.org/release/${releaseMbid}/front-150`;
+            } catch(e) {}
         }
-        
-        // Autocomplétion efficace
-        async function fetchSuggestions(partial) {
-            if(partial.length < 2) return [];
+        if(recordingId) {
             try {
-                const resp = await fetch(`https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(partial)}&limit=8&fmt=json`, {
-                    headers: { 'User-Agent': 'CoachellaFlow/suggest' }
+                const resp = await fetch(`https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`, {
+                    headers: { 'User-Agent': 'CoachellaFlow/5.0' }
                 });
-                if(!resp.ok) return [];
-                const data = await resp.json();
-                const recs = data.recordings || [];
-                const suggestionsSet = new Set();
-                const suggestions = [];
-                for(let rec of recs) {
-                    let artist = getArtistName(rec);
-                    let title = rec.title;
-                    if(title && artist) {
-                        let suggestion = `${title} - ${artist}`;
-                        if(!suggestionsSet.has(suggestion) && suggestion.length<70) {
-                            suggestionsSet.add(suggestion);
-                            suggestions.push({ display: suggestion, query: `${title} ${artist}` });
-                        }
+                if(resp.ok) {
+                    const data = await resp.json();
+                    const releaseId = data.releases?.[0]?.id;
+                    if(releaseId) {
+                        const check = await fetch(`https://coverartarchive.org/release/${releaseId}/front-150`, { method: 'HEAD' });
+                        if(check.ok) return `https://coverartarchive.org/release/${releaseId}/front-150`;
                     }
                 }
-                return suggestions.slice(0, 6);
-            } catch(e) { return []; }
+            } catch(e) {}
         }
-        
-        async function updateAutocomplete() {
-            const val = searchInput.value.trim();
-            if(val.length < 2) { autocompleteDiv.style.display = 'none'; return; }
-            const suggestions = await fetchSuggestions(val);
-            if(!suggestions.length) { autocompleteDiv.style.display = 'none'; return; }
-            autocompleteDiv.innerHTML = suggestions.map(sug => {
-                const regex = new RegExp(`(${escapeHtml(val)})`, 'gi');
-                const highlighted = sug.display.replace(regex, '<strong>$1</strong>');
-                return `<div class="autocomplete-item" data-query="${escapeHtml(sug.query)}">🎤 ${highlighted}</div>`;
-            }).join('');
-            autocompleteDiv.style.display = 'block';
-            document.querySelectorAll('.autocomplete-item').forEach(el => {
-                el.addEventListener('click', () => {
-                    const query = el.getAttribute('data-query');
-                    if(query) { searchInput.value = query; autocompleteDiv.style.display = 'none'; performSearch(query); }
-                });
-            });
-        }
-        
-        async function performSearch(forcedQuery = null) {
-            let query = forcedQuery !== null ? forcedQuery : searchInput.value;
-            query = cleanQuery(query);
-            if(!query) {
-                statusDiv.innerHTML = "🎤 Saisissez un titre ou artiste";
-                trackContainer.innerHTML = `<div class="empty-state">🌴 Recherchez un son Coachella</div>`;
-                loadMoreBtn.style.display = "none";
-                currentTracks = [];
-                return;
+        return null;
+    }
+    
+    async function loadImagesForTracks(tracksSlice, startIndex) {
+        for(let i = 0; i < tracksSlice.length; i++) {
+            const track = tracksSlice[i];
+            const globalIdx = startIndex + i;
+            const card = document.querySelector(`.track-item[data-idx="${globalIdx}"]`);
+            if(!card) continue;
+            const img = card.querySelector('.track-img');
+            if(!img) continue;
+            let cover = null;
+            if(track.releaseMbid) cover = await fetchCoverArt(track.id, track.releaseMbid);
+            if(!cover && track.id) cover = await fetchCoverArt(track.id, null);
+            if(cover) {
+                img.src = cover;
+                img.style.objectFit = "cover";
+            } else {
+                img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E";
+                img.style.objectFit = "contain";
+                img.style.padding = "8px";
             }
-            currentQuery = query;
-            statusDiv.innerHTML = `🌀 Recherche de "${escapeHtml(query)}" ...`;
-            trackContainer.innerHTML = `<div class="empty-state">🎧 Vibes en cours...</div>`;
+        }
+    }
+    
+    function getBadgeHtml(status, recordingId, title, artist) {
+        if(status === 'add') {
+            return `<button class="playlist-badge badge-add" data-action="add" data-id="${recordingId}" data-title="${escapeHtml(title)}" data-artist="${escapeHtml(artist)}">+ Ajouter</button>`;
+        } else if(status === 'inplaylist') {
+            return `<span class="playlist-badge badge-inplaylist">✓ Déjà dans la playlist</span>`;
+        } else {
+            return `<span class="playlist-badge badge-past">✗ Déjà passé</span>`;
+        }
+    }
+    
+    function renderBatch() {
+        if(!currentTracks.length) {
+            trackContainer.innerHTML = `<div class="empty-state">🎡 Aucune musique trouvée<br>Essayez un artiste ou un titre</div>`;
             loadMoreBtn.style.display = "none";
-            try {
-                const tracks = await searchMusic(query);
-                if(tracks.length === 0) {
-                    statusDiv.innerHTML = `⚠️ Aucun résultat pour "${escapeHtml(query)}"`;
-                    trackContainer.innerHTML = `<div class="empty-state">🎶 Pas de morceau trouvé</div>`;
-                    currentTracks = [];
-                    return;
-                }
-                resetAndLoadFirstBatch(tracks);
-            } catch(err) {
-                statusDiv.innerHTML = `❌ Erreur: ${err.message}`;
-                trackContainer.innerHTML = `<div class="empty-state">Problème réseau, réessayez</div>`;
-                currentTracks = [];
-            }
+            statusDiv.innerHTML = currentQuery ? `✨ 0 morceau trouvé` : "";
+            return;
         }
+        const remaining = currentTracks.length - displayedCount;
+        const take = Math.min(BATCH_SIZE, remaining);
+        if(take <= 0) {
+            if(currentTracks.length && displayedCount >= currentTracks.length) loadMoreBtn.style.display = "none";
+            statusDiv.innerHTML = `✨ ${fullTracksCount} morceaux trouvés (${displayedCount} affichés)`;
+            return;
+        }
+        const newSlice = currentTracks.slice(displayedCount, displayedCount + take);
+        const htmlSlice = newSlice.map((track, idx) => {
+            const realIdx = displayedCount + idx;
+            const titleEsc = escapeHtml(track.title);
+            const artistEsc = escapeHtml(track.artist);
+            const status = getTrackStatus(track.id);
+            const badgeHtml = getBadgeHtml(status, track.id, track.title, track.artist);
+            return `
+                <div class="track-item" data-idx="${realIdx}">
+                    <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
+                    <div class="track-info">
+                        <div class="track-title">${titleEsc}</div>
+                        <div class="track-artist">${artistEsc}</div>
+                    </div>
+                    ${badgeHtml}
+                </div>
+            `;
+        }).join('');
         
-        // Event listeners
-        searchBtn.addEventListener('click', () => performSearch());
-        searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { performSearch(); autocompleteDiv.style.display = 'none'; } });
-        searchInput.addEventListener('input', () => { if(debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(() => updateAutocomplete(), 270); });
-        loadMoreBtn.addEventListener('click', loadMore);
-        document.addEventListener('click', (e) => { if(!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) autocompleteDiv.style.display = 'none'; });
+        if(displayedCount === 0) trackContainer.innerHTML = htmlSlice;
+        else trackContainer.insertAdjacentHTML('beforeend', htmlSlice);
         
-        // Fake nav pour garder l'aspect (non fonctionnel mais élégant)
-        document.querySelectorAll('#fakeExplore, #fakeProfile').forEach(link => {
-            link.addEventListener('click', (e) => { e.preventDefault(); alert("✨ Navigation décorative — Page en développement"); });
+        loadImagesForTracks(newSlice, displayedCount);
+        displayedCount += take;
+        fullTracksCount = currentTracks.length;
+        statusDiv.innerHTML = `✨ ${fullTracksCount} morceaux trouvés (${displayedCount} affichés)`;
+        
+        if(displayedCount >= currentTracks.length) loadMoreBtn.style.display = "none";
+        else loadMoreBtn.style.display = "flex";
+        
+        // Gestion des clics "Ajouter"
+        document.querySelectorAll('.badge-add').forEach(btn => {
+            if(btn.getAttribute('data-listener')) return;
+            btn.setAttribute('data-listener', 'true');
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const recordingId = btn.getAttribute('data-id');
+                const title = btn.getAttribute('data-title');
+                const artist = btn.getAttribute('data-artist');
+                const originalText = btn.innerText;
+                btn.innerText = '...';
+                btn.disabled = true;
+                const result = await addToPlaylist(recordingId, title, artist);
+                if(result.success) {
+                    btn.innerText = '✓ Déjà dans la playlist';
+                    btn.classList.remove('badge-add');
+                    btn.classList.add('badge-inplaylist');
+                    btn.disabled = true;
+                } else if(result.reason === 'past') {
+                    btn.innerText = '✗ Déjà passé';
+                    btn.classList.remove('badge-add');
+                    btn.classList.add('badge-past');
+                    btn.disabled = true;
+                } else if(result.reason === 'already') {
+                    btn.innerText = '✓ Déjà dans la playlist';
+                    btn.classList.remove('badge-add');
+                    btn.classList.add('badge-inplaylist');
+                    btn.disabled = true;
+                } else {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            });
         });
-        
+    }
+    
+    function resetAndLoadFirstBatch(tracks) {
+        currentTracks = tracks;
+        displayedCount = 0;
+        fullTracksCount = tracks.length;
+        trackContainer.innerHTML = '';
+        if(tracks.length === 0) renderBatch();
+        else renderBatch();
+    }
+    
+    function loadMore() {
+        if(isLoadingMore) return;
+        if(displayedCount >= currentTracks.length) return;
+        isLoadingMore = true;
+        setTimeout(() => { renderBatch(); isLoadingMore = false; }, 60);
+    }
+    
+    function smartSort(tracksArray, searchTerm) {
+        if(!searchTerm || tracksArray.length <= 1) return tracksArray;
+        const lowerTerm = searchTerm.toLowerCase();
+        const scored = tracksArray.map(track => {
+            let score = 0;
+            const title = (track.title || '').toLowerCase();
+            const artist = (track.artist || '').toLowerCase();
+            if(title === lowerTerm) score += 100;
+            else if(title.includes(lowerTerm)) score += 50;
+            if(artist === lowerTerm) score += 80;
+            else if(artist.includes(lowerTerm)) score += 40;
+            const words = lowerTerm.split(/\s+/);
+            for(let w of words) if(w.length>2) { if(title.includes(w)) score += 15; if(artist.includes(w)) score += 12; }
+            let releaseCount = track.releasesCount || track.raw?.releases?.length || 0;
+            score += Math.min(releaseCount * 3, 30);
+            return { track, score };
+        });
+        scored.sort((a,b) => b.score - a.score);
+        return scored.map(s => s.track);
+    }
+    
+    async function searchMusic(queryRaw) {
+        const query = cleanQuery(queryRaw);
+        if(!query) return [];
+        const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(query)}&limit=45&fmt=json`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        try {
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json', 'User-Agent': 'CoachellaFlow/5.0' },
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if(!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            let recordings = data.recordings || [];
+            recordings = recordings.filter(rec => rec.title?.trim());
+            const map = new Map();
+            for(let rec of recordings) {
+                const artist = getArtistName(rec);
+                const title = rec.title;
+                const key = `${title.toLowerCase().trim()}|${artist.toLowerCase().trim()}`;
+                if(map.has(key)) continue;
+                let releaseMbid = null, releasesCount = 0;
+                if(rec.releases?.length) { releaseMbid = rec.releases[0].id; releasesCount = rec.releases.length; }
+                else if(rec['release-list']?.length) { releaseMbid = rec['release-list'][0].id; releasesCount = rec['release-list'].length; }
+                map.set(key, { id: rec.id, title, artist, releaseMbid, releasesCount, raw: rec });
+            }
+            return smartSort(Array.from(map.values()), query);
+        } catch(err) { throw new Error(err.name === 'AbortError' ? "Timeout" : "Erreur réseau"); }
+    }
+    
+    // Autocomplétion simplifiée (sans highlight différent)
+    async function fetchSuggestions(partial) {
+        if(partial.length < 2) return [];
+        try {
+            const resp = await fetch(`https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(partial)}&limit=6&fmt=json`, {
+                headers: { 'User-Agent': 'CoachellaFlow/suggest' }
+            });
+            if(!resp.ok) return [];
+            const data = await resp.json();
+            const recs = data.recordings || [];
+            const suggestionsSet = new Set();
+            const suggestions = [];
+            for(let rec of recs) {
+                let artist = getArtistName(rec);
+                let title = rec.title;
+                if(title && artist) {
+                    let suggestion = `${title} - ${artist}`;
+                    if(!suggestionsSet.has(suggestion) && suggestion.length<70) {
+                        suggestionsSet.add(suggestion);
+                        suggestions.push({ display: suggestion, query: `${title} ${artist}` });
+                    }
+                }
+            }
+            return suggestions.slice(0, 5);
+        } catch(e) { return []; }
+    }
+    
+    async function updateAutocomplete() {
+        const val = searchInput.value.trim();
+        if(val.length < 2) { autocompleteDiv.style.display = 'none'; return; }
+        const suggestions = await fetchSuggestions(val);
+        if(!suggestions.length) { autocompleteDiv.style.display = 'none'; return; }
+        autocompleteDiv.innerHTML = suggestions.map(sug => {
+            return `<div class="autocomplete-item" data-query="${escapeHtml(sug.query)}">🎵 ${escapeHtml(sug.display)}</div>`;
+        }).join('');
+        autocompleteDiv.style.display = 'block';
+        document.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const query = el.getAttribute('data-query');
+                if(query) { searchInput.value = query; autocompleteDiv.style.display = 'none'; performSearch(query); }
+            });
+        });
+    }
+    
+    async function performSearch(forcedQuery = null) {
+        let query = forcedQuery !== null ? forcedQuery : searchInput.value;
+        query = cleanQuery(query);
+        if(!query) {
+            statusDiv.innerHTML = "🎤 Saisissez un titre ou artiste";
+            trackContainer.innerHTML = `<div class="empty-state">🌴 Recherchez un son Coachella</div>`;
+            loadMoreBtn.style.display = "none";
+            currentTracks = [];
+            return;
+        }
+        currentQuery = query;
+        statusDiv.innerHTML = `🌀 Recherche de "${escapeHtml(query)}" ...`;
+        trackContainer.innerHTML = `<div class="empty-state">🎧 Vibes en cours...</div>`;
+        loadMoreBtn.style.display = "none";
+        try {
+            const tracks = await searchMusic(query);
+            if(tracks.length === 0) {
+                statusDiv.innerHTML = `⚠️ Aucun résultat pour "${escapeHtml(query)}"`;
+                trackContainer.innerHTML = `<div class="empty-state">🎶 Pas de morceau trouvé</div>`;
+                currentTracks = [];
+                return;
+            }
+            resetAndLoadFirstBatch(tracks);
+        } catch(err) {
+            statusDiv.innerHTML = `❌ Erreur: ${err.message}`;
+            trackContainer.innerHTML = `<div class="empty-state">Problème réseau, réessayez</div>`;
+            currentTracks = [];
+        }
+    }
+    
+    // ========== NAVIGATION PAGES ==========
+    function switchPage(page) {
+        if(page === 'explorer') {
+            // Rien à changer, on reste sur l'explorateur
+            return;
+        } else if(page === 'voter') {
+            alert("⭐ Page Voter à venir !\nFonctionnalité en développement pour voter vos sons préférés.");
+        } else if(page === 'past') {
+            alert("📅 Page Déjà passé à venir !\nRetrouvez bientôt l'historique des morceaux joués.");
+        }
+    }
+    
+    // ========== INITIALISATION ==========
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchButton');
+    const trackContainer = document.getElementById('trackListContainer');
+    const statusDiv = document.getElementById('statusMessage');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const autocompleteDiv = document.getElementById('autocompleteList');
+    
+    // Navigation event listeners
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const page = link.getAttribute('data-page');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            switchPage(page);
+        });
+    });
+    
+    searchBtn.addEventListener('click', () => performSearch());
+    searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { performSearch(); autocompleteDiv.style.display = 'none'; } });
+    searchInput.addEventListener('input', () => { if(debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(() => updateAutocomplete(), 300); });
+    loadMoreBtn.addEventListener('click', loadMore);
+    document.addEventListener('click', (e) => { if(!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) autocompleteDiv.style.display = 'none'; });
+    
+    // Chargement initial
+    loadPlaylistCache().then(() => {
         statusDiv.innerHTML = "";
-    })();
+    });
 </script>
 </body>
 </html>
