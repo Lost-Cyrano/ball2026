@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Flow · Voter pour vos sons</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 1rem 1rem 5rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+            padding: 0.4rem;
+            background: rgba(10, 8, 20, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            color: #FFE8D6;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 40px;
+            transition: 0.2s;
+            cursor: pointer;
+            text-align: center;
+            flex: 0 1 auto;
+            white-space: nowrap;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: #F4A26140;
+            color: #FFD6A5;
+        }
+        
+        @media (max-width: 480px) {
+            .nav-link {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
+            }
+            .nav-bar {
+                gap: 0.5rem;
+            }
+        }
+
+        .festival-header {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+        .logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.6rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+
+        /* Zone de recherche */
+        .search-zone {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .search-arena {
+            background: rgba(15, 12, 28, 0.75);
+            backdrop-filter: blur(14px);
+            border-radius: 60px;
+            padding: 0.3rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .search-flex {
+            display: flex;
+            align-items: center;
+            background: #0a0818cc;
+            border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1.6rem;
+            gap: 0.4rem;
+            flex-wrap: nowrap;
+        }
+        .search-icon {
+            color: #F4A261;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        #searchInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.85rem 0;
+            font-size: 1rem;
+            color: #FFE8D6;
+            outline: none;
+            font-weight: 500;
+            min-width: 0;
+            width: 100%;
+        }
+        #searchInput::placeholder {
+            color: #b8a9cf;
+            font-weight: 400;
+        }
+        #searchButton {
+            background: #E76F51;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.6rem 1.3rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        #searchButton:active {
+            transform: scale(0.96);
+        }
+
+        /* Autocomplétion */
+        .autocomplete-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #14112cee;
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            z-index: 100;
+            border: 1px solid #F4A26155;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            border-bottom: 1px solid #2e264e;
+            font-size: 0.9rem;
+            color: #f5e2c9;
+        }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover { background: #F4A26122; }
+
+        .status {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin: 0.2rem 0 0.8rem;
+            min-height: 1.6rem;
+        }
+
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .track-item {
+            background: rgba(18, 15, 32, 0.85);
+            backdrop-filter: blur(6px);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            padding: 0.7rem 0.9rem;
+            border: 1px solid rgba(244, 162, 97, 0.35);
+            transition: all 0.2s ease;
+        }
+        .track-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            object-fit: cover;
+            background: #1d1938;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+            flex-shrink: 0;
+        }
+        .track-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .track-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #FFEFDA;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .track-artist {
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin-top: 5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Badges et boutons vote */
+        .vote-section {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-shrink: 0;
+        }
+        .vote-count {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #FFD166;
+            background: rgba(0,0,0,0.5);
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            min-width: 45px;
+            text-align: center;
+        }
+        .vote-up-btn {
+            background: #E76F51;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.4rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.1s;
+            white-space: nowrap;
+        }
+        .vote-up-btn:active {
+            transform: scale(0.95);
+        }
+        .badge-past-small {
+            background: #4a2f45cc;
+            color: #e2bcb0;
+            border: 1px solid #d48c6e60;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.65rem;
+            white-space: nowrap;
+            text-decoration: line-through;
+        }
+        
+        .empty-state {
+            background: rgba(0,0,0,0.55);
+            border-radius: 32px;
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #d6c5aa;
+            font-size: 0.9rem;
+            border: 1px dashed #F4A26160;
+        }
+        .empty-state a {
+            color: #F4A261;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .load-more-btn {
+            background: transparent;
+            border: 1.5px solid #F4A261;
+            color: #F4A261;
+            padding: 0.7rem 1.8rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-top: 1.5rem;
+            width: fit-content;
+            align-self: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        
+        /* Bouton flottant + */
+        .fab-add {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 56px;
+            height: 56px;
+            background: #E76F51;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: 0.2s;
+            z-index: 10;
+            border: none;
+            text-decoration: none;
+        }
+        .fab-add:active {
+            transform: scale(0.92);
+            background: #cc5a3e;
+        }
+        
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #cabce6;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #352d50;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        @media (max-width: 550px) {
+            .container { padding: 0.8rem 0.8rem 5rem; }
+            .track-img { width: 52px; height: 52px; border-radius: 14px; }
+            .track-title { font-size: 0.85rem; }
+            .vote-up-btn { padding: 0.3rem 0.7rem; font-size: 0.7rem; }
+            .fab-add { bottom: 1rem; right: 1rem; width: 48px; height: 48px; font-size: 1.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <!-- Navigation -->
+    <div class="nav-bar">
+        <a class="nav-link" data-page="voter" style="background:#F4A26140;">⭐ Voter</a>
+        <a class="nav-link" data-page="past">📅 Déjà passé</a>
+    </div>
+
+    <div class="festival-header">
+        <div class="logo">Coachella<span>Flow</span></div>
+        <div style="font-size:0.7rem; margin-top:4px;">Votez pour vos sons préférés</div>
+    </div>
+
+    <div class="search-zone">
+        <div class="search-arena">
+            <div class="search-flex">
+                <div class="search-icon">🎧</div>
+                <input type="text" id="searchInput" placeholder="Chercher dans la playlist..." autocomplete="off">
+                <button id="searchButton">Chercher</button>
+            </div>
+        </div>
+        <div id="autocompleteList" class="autocomplete-dropdown"></div>
+    </div>
+    <div id="statusMessage" class="status"></div>
+
+    <div id="trackListContainer" class="track-list"></div>
+
+    <div style="display: flex; justify-content: center;">
+        <button id="loadMoreBtn" class="load-more-btn" style="display: none;">＋ AFFICHER PLUS</button>
+    </div>
+
+    <div class="footer-note">
+        <span>creation de MAIRE Anael pour la MDL2026, tout droit reservé</span>
+        <span>⚡ Powered by MusicBrainz + Cover Art Archive</span>
+    </div>
+</div>
+
+<!-- Bouton flottant + vers explorateur -->
+<a href="#" id="fabExplore" class="fab-add">+</a>
+
+<script>
+    // Configuration Firebase (identique)
+    const firebaseConfig = {
+        databaseURL: "https://playliste-commune-ball2026-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const playlistRef = database.ref('playlist');
+    
+    // ========== FONDS D'ÉCRAN ALÉATOIRES ==========
+    const backgrounds = [
+        "https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1459749411170-24bf3faf2fa8?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad1a6c5?q=80&w=2070&auto=format"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        document.getElementById('dynamicBg').style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+    }
+    setRandomBackground();
+    
+    // ========== STRUCTURE DONNÉES ==========
+    // Chaque musique dans Firebase: { "u": upvotes } (1 = dans playlist, -1 = passé)
+    // On va enrichir avec les métadonnées (titre, artiste, image) stockées localement
+    // Pour éviter de re-fetch à chaque fois, on utilise un cache des infos
+    
+    let playlistSongs = []; // { id, upvotes, title, artist, releaseMbid }
+    let filteredSongs = [];
+    let displayedCount = 0;
+    let currentFilter = "";
+    const BATCH_SIZE = 4;
+    let isLoadingMore = false;
+    let debounceTimer = null;
+    
+    // Cache des métadonnées des musiques (pour éviter de re-fetch)
+    let metadataCache = new Map(); // id -> { title, artist, releaseMbid, imgUrl }
+    
+    // Récupérer les infos d'une musique depuis MusicBrainz
+    async function fetchMetadata(recordingId) {
+        if(metadataCache.has(recordingId)) return metadataCache.get(recordingId);
+        
+        try {
+            const url = `https://musicbrainz.org/ws/2/recording/${recordingId}?fmt=json`;
+            const response = await fetch(url, {
+                headers: { 'User-Agent': 'CoachellaFlow/Voter' }
+            });
+            if(response.ok) {
+                const data = await response.json();
+                let artist = "Artiste";
+                if(data['artist-credit']?.[0]?.name) artist = data['artist-credit'][0].name;
+                else if(data.artists?.[0]?.name) artist = data.artists[0].name;
+                
+                let releaseMbid = null;
+                if(data.releases?.length) releaseMbid = data.releases[0].id;
+                else if(data['release-list']?.length) releaseMbid = data['release-list'][0].id;
+                
+                const meta = { id: recordingId, title: data.title || "Titre inconnu", artist, releaseMbid, imgUrl: null };
+                metadataCache.set(recordingId, meta);
+                return meta;
+            }
+        } catch(e) { console.warn("Erreur fetch metadata", recordingId, e); }
+        
+        const fallback = { id: recordingId, title: "Titre inconnu", artist: "Artiste inconnu", releaseMbid: null, imgUrl: null };
+        metadataCache.set(recordingId, fallback);
+        return fallback;
+    }
+    
+    // Récupérer l'image de couverture
+    async function fetchCoverArt(releaseMbid) {
+        if(!releaseMbid) return null;
+        try {
+            const res = await fetch(`https://coverartarchive.org/release/${releaseMbid}/front-150`, { method: 'HEAD' });
+            if(res.ok) return `https://coverartarchive.org/release/${releaseMbid}/front-150`;
+        } catch(e) {}
+        return null;
+    }
+    
+    // Charger la playlist depuis Firebase et enrichir
+    async function loadPlaylist() {
+        try {
+            const snapshot = await playlistRef.once('value');
+            const data = snapshot.val();
+            const songsTemp = [];
+            
+            if(data) {
+                for(const [id, value] of Object.entries(data)) {
+                    let upvotes = 0;
+                    if(value && typeof value === 'object') upvotes = value.u || 0;
+                    else if(typeof value === 'number') upvotes = value;
+                    
+                    songsTemp.push({ id, upvotes });
+                }
+            }
+            
+            // Enrichir avec métadonnées
+            const enriched = [];
+            for(const song of songsTemp) {
+                const meta = await fetchMetadata(song.id);
+                enriched.push({
+                    id: song.id,
+                    upvotes: song.upvotes,
+                    title: meta.title,
+                    artist: meta.artist,
+                    releaseMbid: meta.releaseMbid
+                });
+            }
+            
+            // Trier: upvotes décroissant (les -1 à la fin)
+            enriched.sort((a,b) => b.upvotes - a.upvotes);
+            playlistSongs = enriched;
+            applyFilter();
+        } catch(e) {
+            console.error("Erreur chargement playlist", e);
+            statusDiv.innerHTML = "❌ Erreur de chargement de la playlist";
+        }
+    }
+    
+    // Appliquer le filtre de recherche
+    function applyFilter() {
+        if(!currentFilter.trim()) {
+            filteredSongs = [...playlistSongs];
+        } else {
+            const lowerFilter = currentFilter.toLowerCase();
+            filteredSongs = playlistSongs.filter(song => 
+                song.title.toLowerCase().includes(lowerFilter) || 
+                song.artist.toLowerCase().includes(lowerFilter)
+            );
+        }
+        // Conserver l'ordre décroissant d'upvotes (déjà trié)
+        displayedCount = 0;
+        renderBatch();
+    }
+    
+    // Incrémenter les upvotes (voter)
+    async function voteUp(recordingId, currentUpvotes) {
+        if(currentUpvotes === -1) {
+            statusDiv.innerHTML = "✗ Cette musique est déjà passée, on ne peut plus voter";
+            setTimeout(() => { if(statusDiv.innerHTML.includes("déjà passée")) statusDiv.innerHTML = ""; }, 2000);
+            return false;
+        }
+        
+        const newUpvotes = (currentUpvotes || 0) + 1;
+        try {
+            await playlistRef.child(recordingId).set({ u: newUpvotes });
+            
+            // Mettre à jour localement
+            const song = playlistSongs.find(s => s.id === recordingId);
+            if(song) song.upvotes = newUpvotes;
+            
+            // Re-trier
+            playlistSongs.sort((a,b) => b.upvotes - a.upvotes);
+            applyFilter();
+            statusDiv.innerHTML = "⭐ Vote enregistré !";
+            setTimeout(() => { if(statusDiv.innerHTML === "⭐ Vote enregistré !") statusDiv.innerHTML = ""; }, 1500);
+            return true;
+        } catch(e) {
+            console.error("Erreur vote", e);
+            statusDiv.innerHTML = "❌ Erreur lors du vote";
+            return false;
+        }
+    }
+    
+    // Charger les images pour un lot
+    async function loadImagesForBatch(startIndex, count) {
+        for(let i = 0; i < count; i++) {
+            const idx = startIndex + i;
+            if(idx >= filteredSongs.length) continue;
+            const song = filteredSongs[idx];
+            const card = document.querySelector(`.track-item[data-idx="${idx}"]`);
+            if(!card) continue;
+            const img = card.querySelector('.track-img');
+            if(!img) continue;
+            
+            // Vérifier si déjà chargé
+            if(img.src && !img.src.includes('data:image/svg')) continue;
+            
+            let coverUrl = null;
+            if(song.releaseMbid) coverUrl = await fetchCoverArt(song.releaseMbid);
+            if(coverUrl) {
+                img.src = coverUrl;
+                img.style.objectFit = "cover";
+                img.style.padding = "0";
+            } else {
+                // Icône par défaut
+                img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E";
+                img.style.objectFit = "contain";
+                img.style.padding = "8px";
+            }
+        }
+    }
+    
+    function renderBatch() {
+        if(!filteredSongs.length) {
+            if(currentFilter.trim()) {
+                trackContainer.innerHTML = `<div class="empty-state">🎵 Aucune musique ne correspond à "${escapeHtml(currentFilter)}" dans la playlist.<br><a href="#" id="gotoExplorer">✨ Ajoutez-la depuis l'explorateur</a></div>`;
+                const gotoLink = document.getElementById('gotoExplorer');
+                if(gotoLink) gotoLink.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'explorer.html'; });
+            } else {
+                trackContainer.innerHTML = `<div class="empty-state">⭐ La playlist est vide pour l'instant.<br><a href="#" id="gotoExplorer">➕ Ajoutez vos premiers sons</a></div>`;
+                const gotoLink = document.getElementById('gotoExplorer');
+                if(gotoLink) gotoLink.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'explorer.html'; });
+            }
+            loadMoreBtn.style.display = "none";
+            statusDiv.innerHTML = filteredSongs.length ? `✨ ${filteredSongs.length} morceaux dans la playlist` : "🎶 Aucun morceau dans la playlist";
+            return;
+        }
+        
+        const remaining = filteredSongs.length - displayedCount;
+        const take = Math.min(BATCH_SIZE, remaining);
+        if(take <= 0) {
+            loadMoreBtn.style.display = "none";
+            statusDiv.innerHTML = `✨ ${filteredSongs.length} morceaux dans la playlist (${displayedCount} affichés)`;
+            return;
+        }
+        
+        const newSlice = filteredSongs.slice(displayedCount, displayedCount + take);
+        const htmlSlice = newSlice.map((song, idx) => {
+            const realIdx = displayedCount + idx;
+            const titleEsc = escapeHtml(song.title);
+            const artistEsc = escapeHtml(song.artist);
+            const isPast = song.upvotes === -1;
+            
+            if(isPast) {
+                return `
+                    <div class="track-item" data-idx="${realIdx}">
+                        <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
+                        <div class="track-info">
+                            <div class="track-title">${titleEsc}</div>
+                            <div class="track-artist">${artistEsc}</div>
+                        </div>
+                        <div class="vote-section">
+                            <span class="badge-past-small">✗ Déjà passé</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="track-item" data-idx="${realIdx}">
+                        <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
+                        <div class="track-info">
+                            <div class="track-title">${titleEsc}</div>
+                            <div class="track-artist">${artistEsc}</div>
+                        </div>
+                        <div class="vote-section">
+                            <span class="vote-count">${song.upvotes || 0} ❤️</span>
+                            <button class="vote-up-btn" data-id="${song.id}" data-upvotes="${song.upvotes || 0}">+1 Vote</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+        
+        if(displayedCount === 0) trackContainer.innerHTML = htmlSlice;
+        else trackContainer.insertAdjacentHTML('beforeend', htmlSlice);
+        
+        // Charger les images en arrière-plan
+        loadImagesForBatch(displayedCount, take);
+        
+        displayedCount += take;
+        statusDiv.innerHTML = `✨ ${filteredSongs.length} morceaux dans la playlist (${displayedCount} affichés)`;
+        
+        if(displayedCount >= filteredSongs.length) loadMoreBtn.style.display = "none";
+        else loadMoreBtn.style.display = "flex";
+        
+        // Ajouter les listeners pour les boutons vote
+        document.querySelectorAll('.vote-up-btn').forEach(btn => {
+            if(btn.getAttribute('data-listener')) return;
+            btn.setAttribute('data-listener', 'true');
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const upvotes = parseInt(btn.getAttribute('data-upvotes'));
+                btn.disabled = true;
+                btn.innerText = '...';
+                await voteUp(id, upvotes);
+                btn.disabled = false;
+                btn.innerText = '+1 Vote';
+            });
+        });
+    }
+    
+    function loadMore() {
+        if(isLoadingMore) return;
+        if(displayedCount >= filteredSongs.length) return;
+        isLoadingMore = true;
+        setTimeout(() => { renderBatch(); isLoadingMore = false; }, 60);
+    }
+    
+    // Autocomplétion basée sur la playlist
+    function getSuggestions(query) {
+        if(!query || query.length < 2) return [];
+        const lowerQuery = query.toLowerCase();
+        const suggestions = [];
+        for(const song of playlistSongs) {
+            if(song.title.toLowerCase().includes(lowerQuery) || song.artist.toLowerCase().includes(lowerQuery)) {
+                suggestions.push({ display: `${song.title} - ${song.artist}`, query: song.title });
+                if(suggestions.length >= 6) break;
+            }
+        }
+        return suggestions;
+    }
+    
+    function updateAutocomplete() {
+        const val = searchInput.value.trim();
+        if(val.length < 2) { autocompleteDiv.style.display = 'none'; return; }
+        const suggestions = getSuggestions(val);
+        if(!suggestions.length) { autocompleteDiv.style.display = 'none'; return; }
+        autocompleteDiv.innerHTML = suggestions.map(sug => 
+            `<div class="autocomplete-item" data-query="${escapeHtml(sug.query)}">🎵 ${escapeHtml(sug.display)}</div>`
+        ).join('');
+        autocompleteDiv.style.display = 'block';
+        document.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const query = el.getAttribute('data-query');
+                if(query) { searchInput.value = query; autocompleteDiv.style.display = 'none'; performSearch(query); }
+            });
+        });
+    }
+    
+    function performSearch(forcedQuery = null) {
+        currentFilter = forcedQuery !== null ? forcedQuery : searchInput.value;
+        currentFilter = currentFilter.trim();
+        applyFilter();
+    }
+    
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    
+    // Navigation pages
+    function switchPage(page) {
+        if(page === 'past') {
+            alert("📅 Page Déjà passé à venir !\nFonctionnalité en développement.");
+        }
+    }
+    
+    // ========== INITIALISATION ==========
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchButton');
+    const trackContainer = document.getElementById('trackListContainer');
+    const statusDiv = document.getElementById('statusMessage');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const autocompleteDiv = document.getElementById('autocompleteList');
+    const fabExplore = document.getElementById('fabExplore');
+    
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const page = link.getAttribute('data-page');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            switchPage(page);
+        });
+    });
+    
+    // Bouton flottant vers explorateur
+    fabExplore.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = 'explorer.html';
+    });
+    
+    searchBtn.addEventListener('click', () => performSearch());
+    searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { performSearch(); autocompleteDiv.style.display = 'none'; } });
+    searchInput.addEventListener('input', () => { if(debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(() => updateAutocomplete(), 250); });
+    loadMoreBtn.addEventListener('click', loadMore);
+    document.addEventListener('click', (e) => { if(!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) autocompleteDiv.style.display = 'none'; });
+    
+    // Chargement initial
+    loadPlaylist().then(() => {
+        statusDiv.innerHTML = `✨ ${playlistSongs.length} morceaux dans la playlist`;
+    });
+</script>
+</body>
+</html>
