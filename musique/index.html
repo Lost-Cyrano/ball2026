@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>MusicFlow - Explorateur de musique intelligent</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Flow · Explorateur de musique</title>
     <style>
         * {
             margin: 0;
@@ -12,266 +12,267 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0a0c15 0%, #0f1322 100%);
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at 10% 20%, #050a15, #020408);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5f0e8;
+            padding: 0 0 2rem 0;
             min-height: 100vh;
-            padding: 2rem 1.5rem;
-            color: #edf2ff;
         }
 
+        /* Container principal style festival */
         .container {
-            max-width: 1300px;
+            max-width: 580px;
             margin: 0 auto;
+            padding: 1.2rem 1rem 2rem;
         }
 
-        /* Header */
-        .header {
+        /* Header épuré Coachella */
+        .festival-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.8rem;
+            position: relative;
         }
-
-        .header h1 {
-            font-size: 2.7rem;
+        .logo {
+            font-size: 2.2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffffff, #8bb3ff, #5c7ac0);
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            letter-spacing: -0.5px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.5rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e7c8;
+        }
+        .tagline {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #F4A261;
+            margin-top: 5px;
+            opacity: 0.8;
         }
 
-        .sub {
-            color: #8a9bd6;
-            font-size: 0.9rem;
-            margin-top: 0.3rem;
-        }
-
-        /* Barre de recherche améliorée avec autocomplétion */
-        .search-container {
-            position: relative;
-            margin-bottom: 2rem;
-        }
-
-        .search-section {
-            background: rgba(18, 25, 48, 0.8);
+        /* Barre de recherche néon / festival */
+        .search-arena {
+            background: rgba(20, 15, 35, 0.7);
             backdrop-filter: blur(12px);
-            border-radius: 2.5rem;
-            padding: 0.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(80, 120, 220, 0.3);
+            border-radius: 56px;
+            padding: 0.4rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(244, 162, 97, 0.4);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
-
-        .search-wrapper {
+        .search-flex {
             display: flex;
             align-items: center;
-            background: #0a0f1c;
-            border-radius: 2.5rem;
-            padding: 0.2rem 0.2rem 0.2rem 1.8rem;
-            gap: 0.7rem;
+            background: #0b0d17;
+            border-radius: 52px;
+            padding: 0.2rem 0.2rem 0.2rem 1.5rem;
+            gap: 0.5rem;
         }
-
         .search-icon {
-            color: #5e7cce;
-            font-size: 1.2rem;
+            color: #F4A261;
+            font-size: 1.1rem;
         }
-
-        .search-input {
+        #searchInput {
             flex: 1;
             background: transparent;
             border: none;
-            padding: 1rem 0;
-            font-size: 1.1rem;
-            color: white;
+            padding: 0.9rem 0;
+            font-size: 1rem;
+            color: #FFE8D6;
             outline: none;
             font-weight: 500;
         }
-
-        .search-input::placeholder {
-            color: #4a5b8c;
+        #searchInput::placeholder {
+            color: #6a5c7a;
             font-weight: 400;
         }
-
-        .search-btn {
-            background: #2e3f72;
+        #searchButton {
+            background: #E76F51;
             border: none;
             color: white;
-            padding: 0.7rem 1.8rem;
-            border-radius: 2.5rem;
             font-weight: 600;
+            padding: 0.6rem 1.4rem;
+            border-radius: 44px;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        #searchButton:active {
+            transform: scale(0.96);
+            background: #cc5a3e;
         }
 
-        .search-btn:hover {
-            background: #4a6bc0;
-            transform: scale(0.97);
+        /* Status discret */
+        .status {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin: 0.5rem 0 0.8rem;
+            min-height: 2rem;
+            letter-spacing: 0.3px;
         }
 
-        /* Autocomplete dropdown */
-        .autocomplete-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #111827ee;
-            backdrop-filter: blur(16px);
-            border-radius: 1.5rem;
-            margin-top: 0.6rem;
-            z-index: 1000;
-            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
-            border: 1px solid #2d3c66;
-            max-height: 320px;
-            overflow-y: auto;
-            display: none;
+        /* Résultats: liste verticale pure (une musique en dessous de l'autre) */
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 0.5rem;
         }
 
-        .autocomplete-item {
-            padding: 0.8rem 1.2rem;
-            cursor: pointer;
-            transition: 0.1s;
-            border-bottom: 1px solid #1f2a4a;
+        /* Carte unique style festival - design épuré, image ronde/disque */
+        .track-item {
+            background: rgba(18, 20, 32, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 20px;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .autocomplete-item:hover {
-            background: #1f2b50;
-        }
-
-        .autocomplete-item strong {
-            color: #bbd4ff;
-        }
-
-        /* Grille de résultats */
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1rem;
-        }
-
-        /* Carte musique simplifiée : image + titre + artiste */
-        .music-card {
-            background: #12192ee6;
-            border-radius: 1.2rem;
-            overflow: hidden;
-            transition: 0.25s ease;
-            border: 1px solid #283256;
-            box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+            gap: 1rem;
+            padding: 0.7rem;
+            border: 1px solid rgba(244, 162, 97, 0.25);
+            transition: transform 0.15s, background 0.2s;
             cursor: pointer;
         }
-
-        .music-card:hover {
-            transform: translateY(-5px);
-            border-color: #5c7ed9;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        .track-item:active {
+            transform: scale(0.99);
+            background: rgba(30, 28, 48, 0.9);
         }
-
-        .card-img {
-            width: 100%;
-            aspect-ratio: 1 / 1;
+        /* Image pochette style vinyle / carrée mais taille réduite */
+        .track-img {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
             object-fit: cover;
-            background: #0a0f1c;
-            display: block;
+            background: #1e1b2c;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            transition: all 0.2s;
         }
-
-        .card-info {
-            padding: 1rem 0.9rem 1rem 0.9rem;
-            text-align: center;
+        .track-info {
+            flex: 1;
+            overflow: hidden;
         }
-
-        .card-title {
+        .track-title {
             font-weight: 700;
             font-size: 1rem;
-            color: #f0f3ff;
+            color: #FFE8D6;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 0.3rem;
+            letter-spacing: -0.2px;
         }
-
-        .card-artist {
-            font-size: 0.8rem;
-            color: #9fb1e6;
+        .track-artist {
+            font-size: 0.75rem;
+            color: #F4A261;
+            margin-top: 4px;
             font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
-        .listen-badge {
-            margin-top: 0.6rem;
-            font-size: 0.7rem;
-            color: #6482cf;
-            display: inline-block;
-            background: #1e294a;
-            padding: 0.2rem 0.9rem;
-            border-radius: 20px;
-            transition: 0.1s;
-        }
-
-        .music-card:hover .listen-badge {
-            background: #3c5bb0;
-            color: white;
-        }
-
-        .empty-message {
+        .empty-state {
+            background: rgba(0,0,0,0.4);
+            border-radius: 28px;
             text-align: center;
-            padding: 3rem;
-            background: #0d132ab3;
-            border-radius: 2rem;
-            grid-column: 1 / -1;
+            padding: 2.5rem 1.5rem;
+            color: #bfa98e;
+            font-size: 0.9rem;
+            border: 1px dashed #F4A26140;
         }
-
-        .status {
-            text-align: center;
-            margin: 0.5rem 0 0.2rem;
-            font-size: 0.85rem;
-            color: #b3c4ff;
+        /* Bouton "afficher plus" discret */
+        .load-more-btn {
+            background: transparent;
+            border: 1px solid #F4A261;
+            color: #F4A261;
+            padding: 0.7rem 1.5rem;
+            border-radius: 44px;
+            font-weight: 500;
+            font-size: 0.8rem;
+            margin-top: 1.5rem;
+            width: fit-content;
+            align-self: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
         }
-
+        .load-more-btn:active {
+            background: #F4A26120;
+            transform: scale(0.96);
+        }
         .footer-note {
-            margin-top: 3rem;
             text-align: center;
-            font-size: 0.7rem;
-            color: #4a5b8a;
-            border-top: 1px solid #202a48;
-            padding-top: 1.5rem;
+            font-size: 0.6rem;
+            color: #5e5270;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #2e253e;
         }
-
+        /* Aucun élément superflu */
+        .hidden {
+            display: none;
+        }
+        /* adaptation mobile parfaite */
         @media (max-width: 550px) {
-            body { padding: 1rem; }
-            .results-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-            .card-title, .card-artist { white-space: normal; word-break: break-word; }
+            .container {
+                padding: 1rem 0.9rem 2rem;
+            }
+            .track-img {
+                width: 56px;
+                height: 56px;
+                border-radius: 14px;
+            }
+            .track-title {
+                font-size: 0.9rem;
+            }
+            .search-flex {
+                padding-left: 1rem;
+            }
+            #searchButton {
+                padding: 0.5rem 1.2rem;
+            }
+        }
+        /* scroll smooth */
+        html {
+            scroll-behavior: smooth;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <h1>🎵 MusicFlow</h1>
-        <div class="sub">Recherche floue · Images · Sans doublons · Suggestions instantanées</div>
+    <div class="festival-header">
+        <div class="logo">Coachella<span>Flow</span></div>
+        <div class="tagline">FIND YOUR SOUND</div>
     </div>
 
-    <div class="search-container">
-        <div class="search-section">
-            <div class="search-wrapper">
-                <div class="search-icon">🎧</div>
-                <input type="text" id="searchInput" class="search-input" placeholder="Titre ou artiste... ex: Tairo, Imagine, Adele, Bohemian" autocomplete="off">
-                <button id="searchButton" class="search-btn">Explorer</button>
-            </div>
+    <div class="search-arena">
+        <div class="search-flex">
+            <div class="search-icon">🎵</div>
+            <input type="text" id="searchInput" placeholder="Artiste ou titre ..." autocomplete="off">
+            <button id="searchButton">Chercher</button>
         </div>
-        <div id="autocompleteList" class="autocomplete-dropdown"></div>
     </div>
     <div id="statusMessage" class="status"></div>
-    <div id="resultsContainer" class="results-grid">
-        <div class="empty-message">
-            ✨ Cherchez une chanson ou un artiste<br>
-            La recherche tolère les fautes / noms incomplets (ex: "Tairo" → Taïro)
-        </div>
+
+    <!-- Liste verticale des morceaux -->
+    <div id="trackListContainer" class="track-list"></div>
+
+    <!-- Bouton pour afficher plus (discret) -->
+    <div id="loadMoreWrapper" style="display: flex; justify-content: center;">
+        <button id="loadMoreBtn" class="load-more-btn" style="display: none;">＋ AFFICHER PLUS</button>
     </div>
+
     <div class="footer-note">
-        🎵 Powered by MusicBrainz + Cover Art Archive · Résultats dédoublonnés par chanson unique
+        creation de MAIRE Anael pour la MDL2026, tout droit reservé
     </div>
 </div>
 
@@ -280,177 +281,72 @@
         // DOM elements
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchButton');
-        const resultsContainer = document.getElementById('resultsContainer');
+        const trackContainer = document.getElementById('trackListContainer');
         const statusDiv = document.getElementById('statusMessage');
-        const autocompleteDiv = document.getElementById('autocompleteList');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
 
-        let currentSuggestions = []; // stocke suggestions {display, query}
-        let activeRequest = null;
-        let debounceTimer = null;
+        // État des résultats
+        let currentTracks = [];        // liste complète des pistes (objets enrichis)
+        let displayedCount = 0;         // nombre actuellement affiché
+        const BATCH_SIZE = 4;           // afficher 4 par 4
+        let isLoadingMore = false;
+        let currentQuery = "";
 
-        // Fonction d'échappement HTML
+        // Helper échappement
         function escapeHtml(str) {
-            if (!str) return '';
+            if(!str) return '';
             return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
+                if(m === '&') return '&amp;';
+                if(m === '<') return '&lt;';
+                if(m === '>') return '&gt;';
                 return m;
             });
         }
 
-        // Nettoyage de requête
+        // Nettoyage de la requête
         function cleanQuery(q) {
             return q.trim().replace(/\s+/g, ' ');
         }
 
-        // --- Recherche floue côté client via levenshtein simple pour suggestion intelligente (mais MusicBrainz fera le vrai travail)
-        // On propose des suggestions basées sur un mini cache des termes populaires ? Plutôt on va créer des suggestions à partir de l'historique / résultats précédents
-        // Mais pour l'autocomplétion dynamique on va utiliser une mini-logique: on récupère des suggestions en temps réel via une recherche rapide (debounced)
-        // pour restituer des titres/artistes probables.
-        
-        // Cache pour les suggestions pour éviter trop d'appels
-        let suggestionCache = new Map(); // query -> [{display}]
-
-        async function fetchSuggestions(partial) {
-            if (!partial || partial.length < 2) return [];
-            // Vérifier cache récent (durée 2 min)
-            if (suggestionCache.has(partial)) {
-                return suggestionCache.get(partial);
-            }
-            try {
-                // On interroge l'API recording avec un limit réduit (12) pour remplir l'autocomplete
-                const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(partial)}&limit=12&fmt=json`;
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 4000);
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json', 'User-Agent': 'MusicFlow/1.0 (musicflow@demo)' },
-                    signal: controller.signal
-                });
-                clearTimeout(timeout);
-                if (!response.ok) return [];
-                const data = await response.json();
-                const recs = data.recordings || [];
-                // Générer des suggestions variées : "Titre - Artiste" ou "Artiste: Titre"
-                const suggestionsSet = new Set();
-                const suggestionsList = [];
-                for (let rec of recs) {
-                    let artist = getArtistName(rec);
-                    let title = rec.title || "Titre";
-                    if (title && artist) {
-                        let suggestionStr = `${title} - ${artist}`;
-                        if (!suggestionsSet.has(suggestionStr)) {
-                            suggestionsSet.add(suggestionStr);
-                            suggestionsList.push({ display: suggestionStr, query: `${title} ${artist}` });
-                        }
-                        // deuxième format : seulement artiste + titre alternatif
-                        let altSuggestion = `${artist} ${title}`;
-                        if (!suggestionsSet.has(altSuggestion) && altSuggestion.length < 50) {
-                            suggestionsSet.add(altSuggestion);
-                            suggestionsList.push({ display: altSuggestion, query: altSuggestion });
-                        }
-                    }
-                }
-                // Limiter à 8 suggestions pertinentes
-                const finalSuggestions = suggestionsList.slice(0, 8);
-                suggestionCache.set(partial, finalSuggestions);
-                setTimeout(() => suggestionCache.delete(partial), 120000);
-                return finalSuggestions;
-            } catch(e) {
-                console.warn("suggestion error", e);
-                return [];
-            }
-        }
-
-        // Afficher la dropdown
-        async function updateAutocomplete() {
-            const raw = searchInput.value;
-            const val = raw.trim();
-            if (val.length < 2) {
-                autocompleteDiv.style.display = 'none';
-                return;
-            }
-            const suggestions = await fetchSuggestions(val);
-            currentSuggestions = suggestions;
-            if (suggestions.length === 0) {
-                autocompleteDiv.style.display = 'none';
-                return;
-            }
-            // Rendu HTML
-            autocompleteDiv.innerHTML = suggestions.map(sug => {
-                // highlight le terme tapé ?
-                const highlighted = sug.display.replace(new RegExp(`(${escapeHtml(val)})`, 'gi'), '<strong>$1</strong>');
-                return `<div class="autocomplete-item" data-query="${escapeHtml(sug.query)}">🎵 ${highlighted}</div>`;
-            }).join('');
-            autocompleteDiv.style.display = 'block';
-            // ajout listeners
-            document.querySelectorAll('.autocomplete-item').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    const query = el.getAttribute('data-query');
-                    if (query) {
-                        searchInput.value = query;
-                        autocompleteDiv.style.display = 'none';
-                        performSearch(query);
-                    }
-                });
-            });
-        }
-
-        // fermer autocomplete si click outside
-        document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) {
-                autocompleteDiv.style.display = 'none';
-            }
-        });
-
-        // Debounce sur l'input
-        searchInput.addEventListener('input', () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                updateAutocomplete();
-            }, 280);
-        });
-
-        // Fonction pour extraire nom d'artiste depuis un recording
+        // Extraire nom artiste depuis un recording MusicBrainz
         function getArtistName(recording) {
-            if (recording['artist-credit'] && recording['artist-credit'].length > 0) {
+            if(recording['artist-credit'] && recording['artist-credit'].length > 0) {
                 const first = recording['artist-credit'][0];
-                if (first.name) return first.name;
-                if (first.artist && first.artist.name) return first.artist.name;
+                if(first.name) return first.name;
+                if(first.artist && first.artist.name) return first.artist.name;
             }
-            if (recording.artists && recording.artists[0]) return recording.artists[0].name;
-            return "Artiste inconnu";
+            if(recording.artists && recording.artists[0]) return recording.artists[0].name;
+            return "Artiste";
         }
 
-        // Fonction pour récupérer une image de couverture (via Cover Art Archive) depuis le MBID de release ou recording
-        // MusicBrainz recordings n'ont pas de cover directe, mais on peut tenter de trouver la release la plus associée (première release)
+        // Fonction pour récupérer une image de couverture (optimisée)
+        // On tente via release Mbid ou via enregistrement.
         async function fetchCoverArt(recordingId, releaseMbid) {
-            // Si on a un releaseMbid directement, tenter
-            if (releaseMbid) {
-                const coverUrl = `https://coverartarchive.org/release/${releaseMbid}/front-250`;
+            if(releaseMbid) {
+                const coverUrl = `https://coverartarchive.org/release/${releaseMbid}/front-150`;
                 try {
-                    const test = await fetch(coverUrl, { method: 'HEAD', signal: AbortSignal.timeout(1500) });
-                    if (test.ok) return coverUrl;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1800);
+                    const res = await fetch(coverUrl, { method: 'HEAD', signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if(res.ok) return coverUrl;
                 } catch(e) {}
             }
-            // Sinon, on peut essayer de récupérer via l'API de recording -> releases
-            if (recordingId) {
+            // Fallback: chercher via l'inc release
+            if(recordingId) {
                 try {
-                    const incUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`;
-                    const resp = await fetch(incUrl, {
-                        headers: { 'User-Agent': 'MusicFlow/1.0 (cover-fetch)' }
+                    const url = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`;
+                    const response = await fetch(url, {
+                        headers: { 'User-Agent': 'CoachellaFlow/1.0 (contact@festival)' }
                     });
-                    if (resp.ok) {
-                        const data = await resp.json();
+                    if(response.ok) {
+                        const data = await response.json();
                         const releases = data.releases || [];
-                        if (releases.length > 0) {
-                            const firstRelease = releases[0];
-                            const releaseId = firstRelease.id;
-                            if (releaseId) {
-                                const coverTest = `https://coverartarchive.org/release/${releaseId}/front-250`;
-                                const check = await fetch(coverTest, { method: 'HEAD', signal: AbortSignal.timeout(1200) });
-                                if (check.ok) return coverTest;
-                            }
+                        if(releases.length > 0) {
+                            const firstReleaseId = releases[0].id;
+                            const coverTest = `https://coverartarchive.org/release/${firstReleaseId}/front-150`;
+                            const check = await fetch(coverTest, { method: 'HEAD' });
+                            if(check.ok) return coverTest;
                         }
                     }
                 } catch(e) {}
@@ -458,173 +354,264 @@
             return null;
         }
 
-        // Fonction pour dédoublonner les musiques (basé sur nom normalisé + artiste)
-        function deduplicateTracks(tracks) {
-            const map = new Map();
-            for (const track of tracks) {
-                const title = (track.title || '').trim().toLowerCase();
-                const artist = getArtistName(track).toLowerCase();
-                const key = `${title}||${artist}`;
-                if (!map.has(key)) {
-                    map.set(key, track);
+        // Charger les images pour un lot de tracks (pour affichage progressif)
+        async function loadImagesForTracks(tracksSlice, startIndex) {
+            for(let i = 0; i < tracksSlice.length; i++) {
+                const track = tracksSlice[i];
+                const globalIdx = startIndex + i;
+                const cardElement = document.querySelector(`.track-item[data-track-idx="${globalIdx}"]`);
+                if(!cardElement) continue;
+                const imgElement = cardElement.querySelector('.track-img');
+                if(!imgElement) continue;
+                // Si déjà une image réelle chargée, éviter double
+                if(imgElement.src && !imgElement.src.includes('data:image/svg')) continue;
+                
+                let cover = null;
+                if(track.releaseMbid) {
+                    cover = await fetchCoverArt(track.id, track.releaseMbid);
+                }
+                if(!cover && track.id) {
+                    cover = await fetchCoverArt(track.id, null);
+                }
+                if(cover) {
+                    imgElement.src = cover;
+                    imgElement.style.objectFit = "cover";
                 } else {
-                    // si déjà présent, on garde celui avec le plus d'infos (release éventuelle)
-                    const existing = map.get(key);
-                    if (!existing.releaseMbid && track.releaseMbid) map.set(key, track);
+                    // Icône minimaliste style disque
+                    imgElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23F4A26125' stroke='%23F4A261' stroke-width='1.5'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4A261'/%3E%3C/svg%3E";
+                    imgElement.style.objectFit = "contain";
+                    imgElement.style.padding = "8px";
                 }
-            }
-            return Array.from(map.values());
-        }
-
-        // Recherche floue via MusicBrainz (tolère les fautes grâce au moteur interne)
-        async function searchSongs(queryRaw) {
-            const query = cleanQuery(queryRaw);
-            if (!query) return [];
-            // Ajout d'un tilde pour la recherche floue, mais MusicBrainz supporte une certaine tolérance
-            const searchQuery = query;
-            const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(searchQuery)}&limit=45&fmt=json`;
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 9000);
-            try {
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json', 'User-Agent': 'MusicFlow/2.0 (music@flow)' },
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                let recordings = data.recordings || [];
-                // Filtre : on veut seulement ceux avec un titre valide
-                recordings = recordings.filter(rec => rec.title && rec.title.trim().length > 0);
-                // Pour chaque recording, on va tenter de rattacher un release MBID pour la cover
-                const enriched = [];
-                for (let rec of recordings) {
-                    let releaseMbid = null;
-                    if (rec.releases && rec.releases.length > 0) {
-                        releaseMbid = rec.releases[0].id;
-                    } else if (rec['release-list'] && rec['release-list'].length > 0) {
-                        releaseMbid = rec['release-list'][0].id;
-                    }
-                    enriched.push({
-                        id: rec.id,
-                        title: rec.title,
-                        artist: getArtistName(rec),
-                        releaseMbid: releaseMbid,
-                        raw: rec
-                    });
-                }
-                return enriched;
-            } catch (err) {
-                console.error(err);
-                throw new Error(err.name === 'AbortError' ? "Timeout" : "Erreur réseau");
             }
         }
 
-        // Ajout des images au chargement (asynchrone, on hydrate après affichage)
-        async function displayResultsWithImages(tracks) {
-            if (!tracks.length) {
-                resultsContainer.innerHTML = `<div class="empty-message">😕 Aucune musique trouvée. Essayez "Tairo", "Billie", "Lose yourself"...</div>`;
+        // Afficher les N premiers morceaux (batch)
+        function renderBatch() {
+            if(!currentTracks.length) {
+                trackContainer.innerHTML = `<div class="empty-state">✨ Aucune musique trouvée<br>Essayez un artiste ou un titre</div>`;
+                loadMoreBtn.style.display = "none";
                 return;
             }
-            // Génération HTML cartes temporaires sans image (placeholder)
-            const cardsHtml = tracks.map((track, idx) => {
+            
+            const remaining = currentTracks.length - displayedCount;
+            const take = Math.min(BATCH_SIZE, remaining);
+            if(take <= 0) {
+                if(currentTracks.length > 0 && displayedCount >= currentTracks.length) {
+                    loadMoreBtn.style.display = "none";
+                }
+                return;
+            }
+            
+            const newTracksSlice = currentTracks.slice(displayedCount, displayedCount + take);
+            // Générer le HTML pour ces nouvelles cartes
+            const htmlSlice = newTracksSlice.map((track, idx) => {
+                const realIndex = displayedCount + idx;
                 const titleEsc = escapeHtml(track.title);
                 const artistEsc = escapeHtml(track.artist);
-                const recordingId = track.id;
-                // Lien externe vers écoute YouTube / recherche? On peut proposer un lien de recherche générique MusicBrainz + écoute possible avec Deezer/Spotify? mais on ouvre MusicBrainz
-                const mbLink = `https://musicbrainz.org/recording/${recordingId}`;
+                // Pas de lien externe, seulement l'image + titres
                 return `
-                    <div class="music-card" data-idx="${idx}" data-mbid="${recordingId}" data-releasembid="${track.releaseMbid || ''}">
-                        <img class="card-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2330457c'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E" style="background:#0f1428; object-fit:contain; padding:20px;">
-                        <div class="card-info">
-                            <div class="card-title">${titleEsc}</div>
-                            <div class="card-artist">${artistEsc}</div>
-                            <a href="${mbLink}" target="_blank" rel="noopener noreferrer" class="listen-badge" style="text-decoration:none;">🎧 Écouter / Détail</a>
+                    <div class="track-item" data-track-idx="${realIndex}">
+                        <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%232e2a42' stroke='%23F4A261' stroke-width='1'/%3E%3Cpath fill='%23F4A261' d='M40 35 L70 50 L40 65 Z'/%3E%3C/svg%3E" alt="cover">
+                        <div class="track-info">
+                            <div class="track-title">${titleEsc}</div>
+                            <div class="track-artist">${artistEsc}</div>
                         </div>
                     </div>
                 `;
             }).join('');
-            resultsContainer.innerHTML = `<div class="results-grid" style="grid-column:1/-1; display:contents;">${cardsHtml}</div>`;
             
-            // Chargement des images pour chaque carte (ne pas bloquer)
-            for (let i = 0; i < tracks.length; i++) {
-                const track = tracks[i];
-                const cardDiv = document.querySelector(`.music-card[data-idx="${i}"]`);
-                if (!cardDiv) continue;
-                const imgElement = cardDiv.querySelector('.card-img');
-                let coverUrl = null;
-                if (track.releaseMbid) {
-                    coverUrl = await fetchCoverArt(track.id, track.releaseMbid);
-                }
-                if (!coverUrl && track.id) {
-                    coverUrl = await fetchCoverArt(track.id, null);
-                }
-                if (coverUrl) {
-                    imgElement.src = coverUrl;
-                    imgElement.style.objectFit = "cover";
-                    imgElement.style.padding = "0";
-                } else {
-                    // fallback icône musicale
-                    imgElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234a6bc0'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E";
-                    imgElement.style.objectFit = "contain";
-                    imgElement.style.padding = "20px";
-                }
+            if(displayedCount === 0) {
+                trackContainer.innerHTML = htmlSlice;
+            } else {
+                trackContainer.insertAdjacentHTML('beforeend', htmlSlice);
+            }
+            
+            // Chargement des images en arrière-plan pour ce nouveau batch
+            loadImagesForTracks(newTracksSlice, displayedCount);
+            
+            displayedCount += take;
+            
+            // Gérer l'affichage du bouton "plus"
+            if(displayedCount >= currentTracks.length) {
+                loadMoreBtn.style.display = "none";
+            } else {
+                loadMoreBtn.style.display = "flex";
             }
         }
-
-        // Perform search avec gestion du dédoublonnage
-        async function performSearch(forcedQuery = null) {
-            let query = forcedQuery !== null ? forcedQuery : searchInput.value;
-            query = cleanQuery(query);
-            if (query === "") {
-                setStatus("✏️ Saisissez un titre ou un artiste", false);
-                resultsContainer.innerHTML = `<div class="empty-message">🔍 Recherchez une musique (ex: Tairo, Lose Control, Imagine)</div>`;
-                autocompleteDiv.style.display = 'none';
+        
+        // Fonction pour réinitialiser et charger les 4 premières cartes
+        function resetAndDisplayFirstBatch(tracks) {
+            currentTracks = tracks;
+            displayedCount = 0;
+            trackContainer.innerHTML = '';
+            if(tracks.length === 0) {
+                renderBatch(); // affiche empty message
                 return;
             }
-            setStatus(`🔎 Recherche de "${escapeHtml(query)}" (tolère les fautes)...`, false);
-            resultsContainer.innerHTML = `<div class="empty-message">⏳ Chargement des meilleurs morceaux...</div>`;
-            autocompleteDiv.style.display = 'none';
+            renderBatch();
+        }
+        
+        // Charger plus de morceaux
+        function loadMore() {
+            if(isLoadingMore) return;
+            if(displayedCount >= currentTracks.length) {
+                loadMoreBtn.style.display = "none";
+                return;
+            }
+            isLoadingMore = true;
+            // Petit délai pour fluidité (chargement images)
+            setTimeout(() => {
+                renderBatch();
+                isLoadingMore = false;
+            }, 80);
+        }
+        
+        // -------- Tri intelligent des résultats selon pertinence + popularité ----------
+        // MusicBrainz ne fournit pas de métrique de popularité directe, on va utiliser une heuristique :
+        // - score interne (si dispo dans l'API)
+        // - les pistes avec un plus grand nombre de releases associées = plus populaire potentiel
+        // - ordre alphabétique mais on privilégie la correspondance exacte du query dans titre/artiste
+        function smartSort(tracksArray, searchTerm) {
+            if(!searchTerm || tracksArray.length <= 1) return tracksArray;
+            const lowerTerm = searchTerm.toLowerCase();
+            
+            // Calcul d'un score de pertinence
+            const scored = tracksArray.map(track => {
+                let score = 0;
+                const title = (track.title || '').toLowerCase();
+                const artist = (track.artist || '').toLowerCase();
+                // correspondance exacte du terme dans le titre boost
+                if(title === lowerTerm) score += 100;
+                else if(title.includes(lowerTerm)) score += 50;
+                if(artist === lowerTerm) score += 80;
+                else if(artist.includes(lowerTerm)) score += 40;
+                // Si le terme est composé de mots, vérifier chaque mot
+                const words = lowerTerm.split(/\s+/);
+                for(let w of words) {
+                    if(w.length > 2) {
+                        if(title.includes(w)) score += 15;
+                        if(artist.includes(w)) score += 12;
+                    }
+                }
+                // Ajouter une métrique de "popularité artificielle": nombre de releases (si dispo)
+                let releaseCount = 0;
+                if(track.releasesCount) releaseCount = track.releasesCount;
+                else if(track.raw && track.raw.releases) releaseCount = track.raw.releases.length;
+                else if(track.releaseMbid) releaseCount = 1;
+                score += Math.min(releaseCount * 3, 25);
+                
+                // Préférer les titres plus courts (souvent singles)
+                if(title.length < 40 && title.length > 2) score += 5;
+                return { track, score };
+            });
+            scored.sort((a,b) => b.score - a.score);
+            return scored.map(s => s.track);
+        }
+        
+        // ----- Recherche principale avec MusicBrainz + tri & dédoublonnage strict -----
+        async function searchMusic(queryRaw) {
+            const query = cleanQuery(queryRaw);
+            if(!query) return [];
+            const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(query)}&limit=45&fmt=json`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             try {
-                let tracks = await searchSongs(query);
-                // Dédoublonnage
-                const uniqueMap = new Map();
-                for (const t of tracks) {
-                    const key = `${t.title.toLowerCase().normalize()}|${t.artist.toLowerCase().normalize()}`;
-                    if (!uniqueMap.has(key)) uniqueMap.set(key, t);
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json', 'User-Agent': 'CoachellaFlow/2.0 (contact)' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if(!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                let recordings = data.recordings || [];
+                recordings = recordings.filter(rec => rec.title && rec.title.trim().length > 0);
+                
+                // enrichir chaque piste
+                const enriched = [];
+                const seenMap = new Map(); // dédoublonnage (titre+artiste normalisé)
+                for(let rec of recordings) {
+                    const artist = getArtistName(rec);
+                    const title = rec.title;
+                    const key = `${title.toLowerCase().trim()}|${artist.toLowerCase().trim()}`;
+                    if(seenMap.has(key)) continue;
+                    seenMap.set(key, true);
+                    
+                    let releaseMbid = null;
+                    let releasesCount = 0;
+                    if(rec.releases && rec.releases.length) {
+                        releaseMbid = rec.releases[0].id;
+                        releasesCount = rec.releases.length;
+                    } else if(rec['release-list'] && rec['release-list'].length) {
+                        releaseMbid = rec['release-list'][0].id;
+                        releasesCount = rec['release-list'].length;
+                    }
+                    enriched.push({
+                        id: rec.id,
+                        title: title,
+                        artist: artist,
+                        releaseMbid: releaseMbid,
+                        releasesCount: releasesCount,
+                        raw: rec
+                    });
                 }
-                let uniqueTracks = Array.from(uniqueMap.values());
-                // Si on a trop peu de résultats, on relance avec une recherche moins stricte? Déjà faite.
-                if (uniqueTracks.length === 0) {
-                    setStatus(`Aucun morceau pour "${escapeHtml(query)}". Essayez "Tairo" au lieu de "Tai ro" :)`, false);
-                    resultsContainer.innerHTML = `<div class="empty-message">🎶 Pas de résultats. Testez "Taïro", "Bohemian Rhapsody"</div>`;
-                    return;
-                }
-                setStatus(`✨ ${uniqueTracks.length} morceau(x) unique(s) trouvé(s) pour "${escapeHtml(query)}"`, false);
-                await displayResultsWithImages(uniqueTracks);
-            } catch (err) {
-                setStatus(`❌ Erreur: ${err.message}. Vérifiez votre connexion.`, true);
-                resultsContainer.innerHTML = `<div class="empty-message">⚠️ Problème réseau, réessayez plus tard.</div>`;
+                // Tri intelligent selon la recherche originale
+                const sortedTracks = smartSort(enriched, query);
+                return sortedTracks;
+            } catch(err) {
+                console.error(err);
+                throw new Error(err.name === 'AbortError' ? "Timeout" : "Erreur réseau");
             }
         }
-
-        function setStatus(msg, isError = false) {
-            statusDiv.innerHTML = msg;
-            statusDiv.style.color = isError ? '#ffb5a0' : '#bfd0ff';
+        
+        // Afficher le status et lancer la recherche complète
+        async function performSearch() {
+            let raw = searchInput.value;
+            const query = cleanQuery(raw);
+            if(query === "") {
+                statusDiv.innerHTML = "🎤 Saisissez un artiste ou un titre";
+                trackContainer.innerHTML = `<div class="empty-state">🌴 Tapez un nom pour démarrer la recherche</div>`;
+                loadMoreBtn.style.display = "none";
+                currentTracks = [];
+                displayedCount = 0;
+                return;
+            }
+            currentQuery = query;
+            statusDiv.innerHTML = `<span>🌀 Recherche de "${escapeHtml(query)}" ...</span>`;
+            trackContainer.innerHTML = `<div class="empty-state" style="text-align:center;">🎧 Chargement des morceaux...</div>`;
+            loadMoreBtn.style.display = "none";
+            
+            try {
+                const tracks = await searchMusic(query);
+                if(tracks.length === 0) {
+                    statusDiv.innerHTML = `⚠️ Aucun résultat pour "${escapeHtml(query)}"`;
+                    trackContainer.innerHTML = `<div class="empty-state">🎶 Aucune musique trouvée<br>Essayez un autre mot-clé</div>`;
+                    currentTracks = [];
+                    displayedCount = 0;
+                    return;
+                }
+                statusDiv.innerHTML = `✨ ${tracks.length} morceaux trouvés (${Math.min(BATCH_SIZE, tracks.length)} affichés)`;
+                resetAndDisplayFirstBatch(tracks);
+            } catch(err) {
+                statusDiv.innerHTML = `❌ Erreur: ${err.message}`;
+                trackContainer.innerHTML = `<div class="empty-state">⚠️ Problème de connexion, réessayez</div>`;
+                loadMoreBtn.style.display = "none";
+                currentTracks = [];
+            }
         }
-
+        
         // Event listeners
         searchBtn.addEventListener('click', () => performSearch());
         searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if(e.key === 'Enter') {
                 e.preventDefault();
-                autocompleteDiv.style.display = 'none';
                 performSearch();
             }
         });
-        // Rendre la recherche insensible à la casse et à l'accent via MusicBrainz qui fait déjà du flou.
-        // Initial info
-        setStatus("💡 Saisissez un nom d'artiste ou titre incomplet. Ex: 'Tairo' trouve 'Taïro'", false);
+        loadMoreBtn.addEventListener('click', () => loadMore());
+        
+        // Petit placeholder propre
+        searchInput.placeholder = "ex: Tame Impala, Doja Cat, Tairo";
+        statusDiv.innerHTML = "⚡ Coachella vibes · recherche instantanée";
     })();
 </script>
 </body>
