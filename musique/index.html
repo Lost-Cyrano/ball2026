@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MusicFlow - Explorateur de musique intelligent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0c15 0%, #0f1322 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            color: #edf2ff;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #8bb3ff, #5c7ac0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .sub {
+            color: #8a9bd6;
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+
+        /* Barre de recherche améliorée avec autocomplétion */
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-section {
+            background: rgba(18, 25, 48, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 2.5rem;
+            padding: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(80, 120, 220, 0.3);
+        }
+
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+            background: #0a0f1c;
+            border-radius: 2.5rem;
+            padding: 0.2rem 0.2rem 0.2rem 1.8rem;
+            gap: 0.7rem;
+        }
+
+        .search-icon {
+            color: #5e7cce;
+            font-size: 1.2rem;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 1rem 0;
+            font-size: 1.1rem;
+            color: white;
+            outline: none;
+            font-weight: 500;
+        }
+
+        .search-input::placeholder {
+            color: #4a5b8c;
+            font-weight: 400;
+        }
+
+        .search-btn {
+            background: #2e3f72;
+            border: none;
+            color: white;
+            padding: 0.7rem 1.8rem;
+            border-radius: 2.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+            background: #4a6bc0;
+            transform: scale(0.97);
+        }
+
+        /* Autocomplete dropdown */
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #111827ee;
+            backdrop-filter: blur(16px);
+            border-radius: 1.5rem;
+            margin-top: 0.6rem;
+            z-index: 1000;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            border: 1px solid #2d3c66;
+            max-height: 320px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            transition: 0.1s;
+            border-bottom: 1px solid #1f2a4a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .autocomplete-item:hover {
+            background: #1f2b50;
+        }
+
+        .autocomplete-item strong {
+            color: #bbd4ff;
+        }
+
+        /* Grille de résultats */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Carte musique simplifiée : image + titre + artiste */
+        .music-card {
+            background: #12192ee6;
+            border-radius: 1.2rem;
+            overflow: hidden;
+            transition: 0.25s ease;
+            border: 1px solid #283256;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        .music-card:hover {
+            transform: translateY(-5px);
+            border-color: #5c7ed9;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+
+        .card-img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            background: #0a0f1c;
+            display: block;
+        }
+
+        .card-info {
+            padding: 1rem 0.9rem 1rem 0.9rem;
+            text-align: center;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #f0f3ff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.3rem;
+        }
+
+        .card-artist {
+            font-size: 0.8rem;
+            color: #9fb1e6;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .listen-badge {
+            margin-top: 0.6rem;
+            font-size: 0.7rem;
+            color: #6482cf;
+            display: inline-block;
+            background: #1e294a;
+            padding: 0.2rem 0.9rem;
+            border-radius: 20px;
+            transition: 0.1s;
+        }
+
+        .music-card:hover .listen-badge {
+            background: #3c5bb0;
+            color: white;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 3rem;
+            background: #0d132ab3;
+            border-radius: 2rem;
+            grid-column: 1 / -1;
+        }
+
+        .status {
+            text-align: center;
+            margin: 0.5rem 0 0.2rem;
+            font-size: 0.85rem;
+            color: #b3c4ff;
+        }
+
+        .footer-note {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #4a5b8a;
+            border-top: 1px solid #202a48;
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 550px) {
+            body { padding: 1rem; }
+            .results-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+            .card-title, .card-artist { white-space: normal; word-break: break-word; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎵 MusicFlow</h1>
+        <div class="sub">Recherche floue · Images · Sans doublons · Suggestions instantanées</div>
+    </div>
+
+    <div class="search-container">
+        <div class="search-section">
+            <div class="search-wrapper">
+                <div class="search-icon">🎧</div>
+                <input type="text" id="searchInput" class="search-input" placeholder="Titre ou artiste... ex: Tairo, Imagine, Adele, Bohemian" autocomplete="off">
+                <button id="searchButton" class="search-btn">Explorer</button>
+            </div>
+        </div>
+        <div id="autocompleteList" class="autocomplete-dropdown"></div>
+    </div>
+    <div id="statusMessage" class="status"></div>
+    <div id="resultsContainer" class="results-grid">
+        <div class="empty-message">
+            ✨ Cherchez une chanson ou un artiste<br>
+            La recherche tolère les fautes / noms incomplets (ex: "Tairo" → Taïro)
+        </div>
+    </div>
+    <div class="footer-note">
+        🎵 Powered by MusicBrainz + Cover Art Archive · Résultats dédoublonnés par chanson unique
+    </div>
+</div>
+
+<script>
+    (function() {
+        // DOM elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchButton');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const statusDiv = document.getElementById('statusMessage');
+        const autocompleteDiv = document.getElementById('autocompleteList');
+
+        let currentSuggestions = []; // stocke suggestions {display, query}
+        let activeRequest = null;
+        let debounceTimer = null;
+
+        // Fonction d'échappement HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Nettoyage de requête
+        function cleanQuery(q) {
+            return q.trim().replace(/\s+/g, ' ');
+        }
+
+        // --- Recherche floue côté client via levenshtein simple pour suggestion intelligente (mais MusicBrainz fera le vrai travail)
+        // On propose des suggestions basées sur un mini cache des termes populaires ? Plutôt on va créer des suggestions à partir de l'historique / résultats précédents
+        // Mais pour l'autocomplétion dynamique on va utiliser une mini-logique: on récupère des suggestions en temps réel via une recherche rapide (debounced)
+        // pour restituer des titres/artistes probables.
+        
+        // Cache pour les suggestions pour éviter trop d'appels
+        let suggestionCache = new Map(); // query -> [{display}]
+
+        async function fetchSuggestions(partial) {
+            if (!partial || partial.length < 2) return [];
+            // Vérifier cache récent (durée 2 min)
+            if (suggestionCache.has(partial)) {
+                return suggestionCache.get(partial);
+            }
+            try {
+                // On interroge l'API recording avec un limit réduit (12) pour remplir l'autocomplete
+                const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(partial)}&limit=12&fmt=json`;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 4000);
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json', 'User-Agent': 'MusicFlow/1.0 (musicflow@demo)' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+                if (!response.ok) return [];
+                const data = await response.json();
+                const recs = data.recordings || [];
+                // Générer des suggestions variées : "Titre - Artiste" ou "Artiste: Titre"
+                const suggestionsSet = new Set();
+                const suggestionsList = [];
+                for (let rec of recs) {
+                    let artist = getArtistName(rec);
+                    let title = rec.title || "Titre";
+                    if (title && artist) {
+                        let suggestionStr = `${title} - ${artist}`;
+                        if (!suggestionsSet.has(suggestionStr)) {
+                            suggestionsSet.add(suggestionStr);
+                            suggestionsList.push({ display: suggestionStr, query: `${title} ${artist}` });
+                        }
+                        // deuxième format : seulement artiste + titre alternatif
+                        let altSuggestion = `${artist} ${title}`;
+                        if (!suggestionsSet.has(altSuggestion) && altSuggestion.length < 50) {
+                            suggestionsSet.add(altSuggestion);
+                            suggestionsList.push({ display: altSuggestion, query: altSuggestion });
+                        }
+                    }
+                }
+                // Limiter à 8 suggestions pertinentes
+                const finalSuggestions = suggestionsList.slice(0, 8);
+                suggestionCache.set(partial, finalSuggestions);
+                setTimeout(() => suggestionCache.delete(partial), 120000);
+                return finalSuggestions;
+            } catch(e) {
+                console.warn("suggestion error", e);
+                return [];
+            }
+        }
+
+        // Afficher la dropdown
+        async function updateAutocomplete() {
+            const raw = searchInput.value;
+            const val = raw.trim();
+            if (val.length < 2) {
+                autocompleteDiv.style.display = 'none';
+                return;
+            }
+            const suggestions = await fetchSuggestions(val);
+            currentSuggestions = suggestions;
+            if (suggestions.length === 0) {
+                autocompleteDiv.style.display = 'none';
+                return;
+            }
+            // Rendu HTML
+            autocompleteDiv.innerHTML = suggestions.map(sug => {
+                // highlight le terme tapé ?
+                const highlighted = sug.display.replace(new RegExp(`(${escapeHtml(val)})`, 'gi'), '<strong>$1</strong>');
+                return `<div class="autocomplete-item" data-query="${escapeHtml(sug.query)}">🎵 ${highlighted}</div>`;
+            }).join('');
+            autocompleteDiv.style.display = 'block';
+            // ajout listeners
+            document.querySelectorAll('.autocomplete-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const query = el.getAttribute('data-query');
+                    if (query) {
+                        searchInput.value = query;
+                        autocompleteDiv.style.display = 'none';
+                        performSearch(query);
+                    }
+                });
+            });
+        }
+
+        // fermer autocomplete si click outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !autocompleteDiv.contains(e.target)) {
+                autocompleteDiv.style.display = 'none';
+            }
+        });
+
+        // Debounce sur l'input
+        searchInput.addEventListener('input', () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                updateAutocomplete();
+            }, 280);
+        });
+
+        // Fonction pour extraire nom d'artiste depuis un recording
+        function getArtistName(recording) {
+            if (recording['artist-credit'] && recording['artist-credit'].length > 0) {
+                const first = recording['artist-credit'][0];
+                if (first.name) return first.name;
+                if (first.artist && first.artist.name) return first.artist.name;
+            }
+            if (recording.artists && recording.artists[0]) return recording.artists[0].name;
+            return "Artiste inconnu";
+        }
+
+        // Fonction pour récupérer une image de couverture (via Cover Art Archive) depuis le MBID de release ou recording
+        // MusicBrainz recordings n'ont pas de cover directe, mais on peut tenter de trouver la release la plus associée (première release)
+        async function fetchCoverArt(recordingId, releaseMbid) {
+            // Si on a un releaseMbid directement, tenter
+            if (releaseMbid) {
+                const coverUrl = `https://coverartarchive.org/release/${releaseMbid}/front-250`;
+                try {
+                    const test = await fetch(coverUrl, { method: 'HEAD', signal: AbortSignal.timeout(1500) });
+                    if (test.ok) return coverUrl;
+                } catch(e) {}
+            }
+            // Sinon, on peut essayer de récupérer via l'API de recording -> releases
+            if (recordingId) {
+                try {
+                    const incUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`;
+                    const resp = await fetch(incUrl, {
+                        headers: { 'User-Agent': 'MusicFlow/1.0 (cover-fetch)' }
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const releases = data.releases || [];
+                        if (releases.length > 0) {
+                            const firstRelease = releases[0];
+                            const releaseId = firstRelease.id;
+                            if (releaseId) {
+                                const coverTest = `https://coverartarchive.org/release/${releaseId}/front-250`;
+                                const check = await fetch(coverTest, { method: 'HEAD', signal: AbortSignal.timeout(1200) });
+                                if (check.ok) return coverTest;
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+            return null;
+        }
+
+        // Fonction pour dédoublonner les musiques (basé sur nom normalisé + artiste)
+        function deduplicateTracks(tracks) {
+            const map = new Map();
+            for (const track of tracks) {
+                const title = (track.title || '').trim().toLowerCase();
+                const artist = getArtistName(track).toLowerCase();
+                const key = `${title}||${artist}`;
+                if (!map.has(key)) {
+                    map.set(key, track);
+                } else {
+                    // si déjà présent, on garde celui avec le plus d'infos (release éventuelle)
+                    const existing = map.get(key);
+                    if (!existing.releaseMbid && track.releaseMbid) map.set(key, track);
+                }
+            }
+            return Array.from(map.values());
+        }
+
+        // Recherche floue via MusicBrainz (tolère les fautes grâce au moteur interne)
+        async function searchSongs(queryRaw) {
+            const query = cleanQuery(queryRaw);
+            if (!query) return [];
+            // Ajout d'un tilde pour la recherche floue, mais MusicBrainz supporte une certaine tolérance
+            const searchQuery = query;
+            const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(searchQuery)}&limit=45&fmt=json`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 9000);
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json', 'User-Agent': 'MusicFlow/2.0 (music@flow)' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                let recordings = data.recordings || [];
+                // Filtre : on veut seulement ceux avec un titre valide
+                recordings = recordings.filter(rec => rec.title && rec.title.trim().length > 0);
+                // Pour chaque recording, on va tenter de rattacher un release MBID pour la cover
+                const enriched = [];
+                for (let rec of recordings) {
+                    let releaseMbid = null;
+                    if (rec.releases && rec.releases.length > 0) {
+                        releaseMbid = rec.releases[0].id;
+                    } else if (rec['release-list'] && rec['release-list'].length > 0) {
+                        releaseMbid = rec['release-list'][0].id;
+                    }
+                    enriched.push({
+                        id: rec.id,
+                        title: rec.title,
+                        artist: getArtistName(rec),
+                        releaseMbid: releaseMbid,
+                        raw: rec
+                    });
+                }
+                return enriched;
+            } catch (err) {
+                console.error(err);
+                throw new Error(err.name === 'AbortError' ? "Timeout" : "Erreur réseau");
+            }
+        }
+
+        // Ajout des images au chargement (asynchrone, on hydrate après affichage)
+        async function displayResultsWithImages(tracks) {
+            if (!tracks.length) {
+                resultsContainer.innerHTML = `<div class="empty-message">😕 Aucune musique trouvée. Essayez "Tairo", "Billie", "Lose yourself"...</div>`;
+                return;
+            }
+            // Génération HTML cartes temporaires sans image (placeholder)
+            const cardsHtml = tracks.map((track, idx) => {
+                const titleEsc = escapeHtml(track.title);
+                const artistEsc = escapeHtml(track.artist);
+                const recordingId = track.id;
+                // Lien externe vers écoute YouTube / recherche? On peut proposer un lien de recherche générique MusicBrainz + écoute possible avec Deezer/Spotify? mais on ouvre MusicBrainz
+                const mbLink = `https://musicbrainz.org/recording/${recordingId}`;
+                return `
+                    <div class="music-card" data-idx="${idx}" data-mbid="${recordingId}" data-releasembid="${track.releaseMbid || ''}">
+                        <img class="card-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2330457c'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E" style="background:#0f1428; object-fit:contain; padding:20px;">
+                        <div class="card-info">
+                            <div class="card-title">${titleEsc}</div>
+                            <div class="card-artist">${artistEsc}</div>
+                            <a href="${mbLink}" target="_blank" rel="noopener noreferrer" class="listen-badge" style="text-decoration:none;">🎧 Écouter / Détail</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            resultsContainer.innerHTML = `<div class="results-grid" style="grid-column:1/-1; display:contents;">${cardsHtml}</div>`;
+            
+            // Chargement des images pour chaque carte (ne pas bloquer)
+            for (let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                const cardDiv = document.querySelector(`.music-card[data-idx="${i}"]`);
+                if (!cardDiv) continue;
+                const imgElement = cardDiv.querySelector('.card-img');
+                let coverUrl = null;
+                if (track.releaseMbid) {
+                    coverUrl = await fetchCoverArt(track.id, track.releaseMbid);
+                }
+                if (!coverUrl && track.id) {
+                    coverUrl = await fetchCoverArt(track.id, null);
+                }
+                if (coverUrl) {
+                    imgElement.src = coverUrl;
+                    imgElement.style.objectFit = "cover";
+                    imgElement.style.padding = "0";
+                } else {
+                    // fallback icône musicale
+                    imgElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234a6bc0'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z'/%3E%3C/svg%3E";
+                    imgElement.style.objectFit = "contain";
+                    imgElement.style.padding = "20px";
+                }
+            }
+        }
+
+        // Perform search avec gestion du dédoublonnage
+        async function performSearch(forcedQuery = null) {
+            let query = forcedQuery !== null ? forcedQuery : searchInput.value;
+            query = cleanQuery(query);
+            if (query === "") {
+                setStatus("✏️ Saisissez un titre ou un artiste", false);
+                resultsContainer.innerHTML = `<div class="empty-message">🔍 Recherchez une musique (ex: Tairo, Lose Control, Imagine)</div>`;
+                autocompleteDiv.style.display = 'none';
+                return;
+            }
+            setStatus(`🔎 Recherche de "${escapeHtml(query)}" (tolère les fautes)...`, false);
+            resultsContainer.innerHTML = `<div class="empty-message">⏳ Chargement des meilleurs morceaux...</div>`;
+            autocompleteDiv.style.display = 'none';
+            try {
+                let tracks = await searchSongs(query);
+                // Dédoublonnage
+                const uniqueMap = new Map();
+                for (const t of tracks) {
+                    const key = `${t.title.toLowerCase().normalize()}|${t.artist.toLowerCase().normalize()}`;
+                    if (!uniqueMap.has(key)) uniqueMap.set(key, t);
+                }
+                let uniqueTracks = Array.from(uniqueMap.values());
+                // Si on a trop peu de résultats, on relance avec une recherche moins stricte? Déjà faite.
+                if (uniqueTracks.length === 0) {
+                    setStatus(`Aucun morceau pour "${escapeHtml(query)}". Essayez "Tairo" au lieu de "Tai ro" :)`, false);
+                    resultsContainer.innerHTML = `<div class="empty-message">🎶 Pas de résultats. Testez "Taïro", "Bohemian Rhapsody"</div>`;
+                    return;
+                }
+                setStatus(`✨ ${uniqueTracks.length} morceau(x) unique(s) trouvé(s) pour "${escapeHtml(query)}"`, false);
+                await displayResultsWithImages(uniqueTracks);
+            } catch (err) {
+                setStatus(`❌ Erreur: ${err.message}. Vérifiez votre connexion.`, true);
+                resultsContainer.innerHTML = `<div class="empty-message">⚠️ Problème réseau, réessayez plus tard.</div>`;
+            }
+        }
+
+        function setStatus(msg, isError = false) {
+            statusDiv.innerHTML = msg;
+            statusDiv.style.color = isError ? '#ffb5a0' : '#bfd0ff';
+        }
+
+        // Event listeners
+        searchBtn.addEventListener('click', () => performSearch());
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                autocompleteDiv.style.display = 'none';
+                performSearch();
+            }
+        });
+        // Rendre la recherche insensible à la casse et à l'accent via MusicBrainz qui fait déjà du flou.
+        // Initial info
+        setStatus("💡 Saisissez un nom d'artiste ou titre incomplet. Ex: 'Tairo' trouve 'Taïro'", false);
+    })();
+</script>
+</body>
+</html>
