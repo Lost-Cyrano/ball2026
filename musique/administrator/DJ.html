@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Flow · Dual Mode</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 1rem 1rem 2rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(10, 8, 20, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 0.3rem;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #FFE8D6;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.7rem 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: #E76F51;
+            color: white;
+            box-shadow: 0 2px 8px rgba(231,111,81,0.3);
+        }
+        .tab-btn:not(.active):hover {
+            background: #F4A26130;
+        }
+
+        .festival-header {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+        .logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.6rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+
+        .search-zone {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .search-arena {
+            background: rgba(15, 12, 28, 0.75);
+            backdrop-filter: blur(14px);
+            border-radius: 60px;
+            padding: 0.3rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .search-flex {
+            display: flex;
+            align-items: center;
+            background: #0a0818cc;
+            border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1.6rem;
+            gap: 0.4rem;
+            flex-wrap: nowrap;
+        }
+        .search-icon {
+            color: #F4A261;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        #searchInput, #searchInputSecret {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.85rem 0;
+            font-size: 1rem;
+            color: #FFE8D6;
+            outline: none;
+            font-weight: 500;
+            min-width: 0;
+            width: 100%;
+        }
+        #searchInput::placeholder, #searchInputSecret::placeholder {
+            color: #b8a9cf;
+            font-weight: 400;
+        }
+        #searchButton, #searchButtonSecret {
+            background: #E76F51;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.6rem 1.3rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #14112cee;
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            z-index: 100;
+            border: 1px solid #F4A26155;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 0.8rem 1.2rem;
+            cursor: pointer;
+            border-bottom: 1px solid #2e264e;
+            font-size: 0.9rem;
+            color: #f5e2c9;
+        }
+        .autocomplete-item:hover { background: #F4A26122; }
+
+        .status {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin: 0.2rem 0 0.8rem;
+            min-height: 1.6rem;
+        }
+
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .track-item {
+            background: rgba(18, 15, 32, 0.85);
+            backdrop-filter: blur(6px);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            padding: 0.7rem 0.9rem;
+            border: 1px solid rgba(244, 162, 97, 0.35);
+        }
+        .track-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            object-fit: cover;
+            background: #1d1938;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+            flex-shrink: 0;
+        }
+        .track-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .track-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #FFEFDA;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .track-artist {
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin-top: 5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .action-badge {
+            border-radius: 40px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .badge-past {
+            background: #4a2f45cc;
+            color: #e2bcb0;
+            border: 1px solid #d48c6e60;
+            text-decoration: line-through;
+            cursor: pointer;
+        }
+        .badge-past:active { transform: scale(0.96); }
+        .badge-inplaylist {
+            background: #2a2548cc;
+            color: #b9ab8a;
+            border: 1px solid #F4A26180;
+            cursor: default;
+        }
+        .badge-add-secret {
+            background: #E76F51cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .badge-add-secret:active { transform: scale(0.96); }
+        
+        .empty-state {
+            background: rgba(0,0,0,0.55);
+            border-radius: 32px;
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #d6c5aa;
+            font-size: 0.9rem;
+            border: 1px dashed #F4A26160;
+        }
+        .load-more-btn {
+            background: transparent;
+            border: 1.5px solid #F4A261;
+            color: #F4A261;
+            padding: 0.7rem 1.8rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-top: 1.5rem;
+            width: fit-content;
+            align-self: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(8px);
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #cabce6;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #352d50;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .hidden-panel {
+            display: none;
+        }
+        
+        @media (max-width: 550px) {
+            .container { padding: 0.8rem; }
+            .track-img { width: 52px; height: 52px; border-radius: 14px; }
+            .track-title { font-size: 0.85rem; }
+            .action-badge { padding: 0.3rem 0.6rem; font-size: 0.6rem; }
+            .tab-btn { font-size: 0.75rem; padding: 0.5rem 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="explorer">🎵 Explorer</button>
+        <button class="tab-btn" data-tab="secret">🔒 Admin Secret</button>
+    </div>
+
+    <div id="explorerPanel">
+        <div class="festival-header">
+            <div class="logo">Coachella<span>Flow</span></div>
+        </div>
+        <div class="search-zone">
+            <div class="search-arena">
+                <div class="search-flex">
+                    <div class="search-icon">🎧</div>
+                    <input type="text" id="searchInput" placeholder="Titre ou Artiste" autocomplete="off">
+                    <button id="searchButton">Rechercher</button>
+                </div>
+            </div>
+            <div id="autocompleteList" class="autocomplete-dropdown"></div>
+        </div>
+        <div id="statusMessage" class="status"></div>
+        <div id="trackListContainer" class="track-list"></div>
+        <div style="display: flex; justify-content: center;">
+            <button id="loadMoreBtn" class="load-more-btn" style="display: none;">＋ AFFICHER PLUS</button>
+        </div>
+    </div>
+
+    <div id="secretPanel" class="hidden-panel">
+        <div class="festival-header">
+            <div class="logo">Admin<span>Secret</span></div>
+            <div style="font-size:0.7rem; margin-top:5px;">⚡ Gestion des morceaux passés</div>
+        </div>
+        <div class="search-zone">
+            <div class="search-arena">
+                <div class="search-flex">
+                    <div class="search-icon">🔍</div>
+                    <input type="text" id="searchInputSecret" placeholder="Rechercher dans la playlist..." autocomplete="off">
+                    <button id="searchButtonSecret">Filtrer</button>
+                </div>
+            </div>
+        </div>
+        <div id="statusSecret" class="status"></div>
+        <div id="playlistContainer" class="track-list"></div>
+        <div style="display: flex; justify-content: center;">
+            <button id="loadMoreSecretBtn" class="load-more-btn" style="display: none;">＋ AFFICHER PLUS</button>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <span>creation de MAIRE Anael pour la MDL2026, tout droit reservé</span>
+        <span>⚡ Powered by MusicBrainz + Cover Art Archive</span>
+    </div>
+</div>
+
+<script>
+    // ==================== SYSTÈME DE CACHE LOCAL POUR LES IMAGES ====================
+    // Utilisation d'un Map en mémoire + localStorage pour les métadonnées
+    // Stockage des images en base64 dans localStorage (limité à ~5-10MB, suffisant pour des vignettes)
+    
+    const IMAGE_CACHE_KEY = 'coachella_image_cache';
+    let imageCache = new Map(); // key: "recordingId" ou "url" -> base64 string
+    
+    // Charger le cache depuis localStorage au démarrage
+    function loadImageCacheFromStorage() {
+        try {
+            const stored = localStorage.getItem(IMAGE_CACHE_KEY);
+            if(stored) {
+                const parsed = JSON.parse(stored);
+                imageCache = new Map(Object.entries(parsed));
+                console.log(`📦 Cache image chargé: ${imageCache.size} images en mémoire`);
+            }
+        } catch(e) {
+            console.warn("Erreur chargement cache", e);
+        }
+    }
+    
+    // Sauvegarder le cache dans localStorage
+    function persistImageCache() {
+        try {
+            const obj = Object.fromEntries(imageCache);
+            // Limiter la taille en supprimant les plus anciennes si trop volumineux
+            let jsonStr = JSON.stringify(obj);
+            if(jsonStr.length > 4.5 * 1024 * 1024) { // Si > 4.5MB, on nettoie
+                console.warn("Cache trop volumineux, nettoyage...");
+                const entries = Array.from(imageCache.entries());
+                const toKeep = entries.slice(-300); // Garde les 300 plus récentes
+                imageCache = new Map(toKeep);
+                persistImageCache();
+                return;
+            }
+            localStorage.setItem(IMAGE_CACHE_KEY, jsonStr);
+        } catch(e) {
+            console.warn("Erreur sauvegarde cache", e);
+        }
+    }
+    
+    // Récupérer une image du cache
+    function getCachedImage(key) {
+        return imageCache.get(key) || null;
+    }
+    
+    // Stocker une image dans le cache
+    function cacheImage(key, base64Data) {
+        if(base64Data && base64Data.length < 500000) { // Limite ~500KB par image
+            imageCache.set(key, base64Data);
+            persistImageCache();
+        }
+    }
+    
+    // Convertir une URL d'image en base64 via fetch + canvas
+    async function urlToBase64(url) {
+        try {
+            const response = await fetch(url, { mode: 'cors' });
+            if(!response.ok) throw new Error();
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        } catch(e) {
+            return null;
+        }
+    }
+    
+    // Charger une image avec cache (priorité cache, puis réseau, puis stockage)
+    async function loadImageWithCache(imgElement, cacheKey, imageUrl) {
+        if(!imgElement) return false;
+        
+        // 1. Vérifier le cache mémoire
+        const cachedBase64 = getCachedImage(cacheKey);
+        if(cachedBase64) {
+            imgElement.src = cachedBase64;
+            imgElement.style.objectFit = "cover";
+            return true;
+        }
+        
+        // 2. Si pas en cache, télécharger depuis l'URL
+        if(imageUrl) {
+            const base64 = await urlToBase64(imageUrl);
+            if(base64) {
+                imgElement.src = base64;
+                imgElement.style.objectFit = "cover";
+                cacheImage(cacheKey, base64);
+                return true;
+            }
+        }
+        
+        // 3. Fallback: image par défaut
+        imgElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E";
+        imgElement.style.objectFit = "contain";
+        imgElement.style.padding = "8px";
+        return false;
+    }
+    
+    // ==================== CONFIGURATION FIREBASE ====================
+    const firebaseConfig = {
+        databaseURL: "https://playliste-commune-ball2026-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const playlistRef = database.ref('playlist');
+    
+    // ========== FONDS D'ÉCRAN ==========
+    const backgrounds = [
+        "https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1459749411170-24bf3faf2fa8?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad1a6c5?q=80&w=2070&auto=format"
+    ];
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        document.getElementById('dynamicBg').style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+    }
+    setRandomBackground();
+    
+    // ========== ÉTAT GLOBAL ==========
+    let playlistCache = new Map();
+    let secretFilteredTracks = [];
+    let secretDisplayed = 0;
+    let secretSearchTerm = "";
+    const SECRET_BATCH = 8;
+    
+    let currentTracks = [];
+    let displayedCount = 0;
+    let fullTracksCount = 0;
+    const BATCH_SIZE = 4;
+    let debounceTimer = null;
+    
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function cleanQuery(q) { return q.trim().replace(/\s+/g, ' '); }
+    
+    function getArtistName(recording) {
+        if(recording['artist-credit']?.[0]?.name) return recording['artist-credit'][0].name;
+        if(recording['artist-credit']?.[0]?.artist?.name) return recording['artist-credit'][0].artist.name;
+        if(recording.artists?.[0]?.name) return recording.artists[0].name;
+        return "Artiste";
+    }
+    
+    // ========== CHARGEMENT DES IMAGES (avec cache) ==========
+    async function fetchCoverArt(recordingId, releaseMbid) {
+        if(releaseMbid) {
+            try {
+                const res = await fetch(`https://coverartarchive.org/release/${releaseMbid}/front-150`, { method: 'HEAD' });
+                if(res.ok) return `https://coverartarchive.org/release/${releaseMbid}/front-150`;
+            } catch(e) {}
+        }
+        if(recordingId) {
+            try {
+                const resp = await fetch(`https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`, {
+                    headers: { 'User-Agent': 'CoachellaFlow/9.0' }
+                });
+                if(resp.ok) {
+                    const data = await resp.json();
+                    const releaseId = data.releases?.[0]?.id;
+                    if(releaseId) {
+                        const check = await fetch(`https://coverartarchive.org/release/${releaseId}/front-150`, { method: 'HEAD' });
+                        if(check.ok) return `https://coverartarchive.org/release/${releaseId}/front-150`;
+                    }
+                }
+            } catch(e) {}
+        }
+        return null;
+    }
+    
+    async function loadImageForTrack(track, imgElement) {
+        if(!imgElement || !track.id) return;
+        const cacheKey = `img_${track.id}`;
+        let imageUrl = null;
+        
+        // Essayer d'abord avec releaseMbid si disponible
+        if(track.releaseMbid) {
+            imageUrl = `https://coverartarchive.org/release/${track.releaseMbid}/front-150`;
+        } else {
+            // Chercher l'URL via l'API
+            const foundUrl = await fetchCoverArt(track.id, null);
+            if(foundUrl) {
+                imageUrl = foundUrl;
+                track.releaseMbid = foundUrl.split('/').slice(-2, -1)[0]; // extraire ID pour futur cache
+            }
+        }
+        
+        await loadImageWithCache(imgElement, cacheKey, imageUrl);
+    }
+    
+    async function loadImagesForTracks(tracksSlice, startIndex, containerSelector = '.track-item') {
+        for(let i = 0; i < tracksSlice.length; i++) {
+            const track = tracksSlice[i];
+            const globalIdx = startIndex + i;
+            const card = document.querySelector(`${containerSelector}[data-idx="${globalIdx}"], ${containerSelector}[data-secret-idx="${globalIdx}"]`);
+            if(card) {
+                const img = card.querySelector('.track-img');
+                await loadImageForTrack(track, img);
+            }
+        }
+    }
+    
+    // ========== CHARGEMENT PLAYLIST ==========
+    async function loadPlaylistCache() {
+        try {
+            const snapshot = await playlistRef.once('value');
+            const data = snapshot.val();
+            playlistCache.clear();
+            if(data) {
+                Object.keys(data).forEach(key => {
+                    const val = data[key];
+                    let upvotes = 0;
+                    let artist = "";
+                    if (val && typeof val === 'object') {
+                        upvotes = val.u || 0;
+                        artist = val.a || "";
+                    } else if (typeof val === 'number') {
+                        upvotes = val;
+                    }
+                    playlistCache.set(key, { upvotes, artist });
+                });
+            }
+            console.log("Playlist chargée:", playlistCache.size);
+            if(currentTab === 'secret') refreshSecretPlaylist();
+        } catch(e) { console.warn(e); }
+    }
+    
+    async function markAsPast(recordingId, artistName) {
+        try {
+            const existing = playlistCache.get(recordingId);
+            if(existing && existing.upvotes === -1) return { success: false, reason: 'already_past' };
+            const dataToStore = { u: -1, a: artistName.substring(0, 40) };
+            await playlistRef.child(recordingId).set(dataToStore);
+            playlistCache.set(recordingId, { upvotes: -1, artist: artistName });
+            return { success: true };
+        } catch(e) { return { success: false }; }
+    }
+    
+    async function fetchTrackInfo(recordingId, artistName) {
+        try {
+            const url = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=releases&fmt=json`;
+            const response = await fetch(url, { headers: { 'User-Agent': 'CoachellaFlow/9.0' } });
+            if(response.ok) {
+                const data = await response.json();
+                let title = data.title || "Titre inconnu";
+                let artist = artistName || getArtistName(data);
+                let releaseMbid = data.releases?.[0]?.id || null;
+                return { id: recordingId, title, artist, releaseMbid };
+            }
+        } catch(e) {}
+        return { id: recordingId, title: "Titre inconnu", artist: artistName, releaseMbid: null };
+    }
+    
+    async function refreshSecretPlaylist() {
+        const statusDiv = document.getElementById('statusSecret');
+        statusDiv.innerHTML = "🔄 Chargement de la playlist...";
+        
+        const allEntries = Array.from(playlistCache.entries());
+        let tracks = [];
+        
+        for(let [id, data] of allEntries) {
+            let trackInfo = await fetchTrackInfo(id, data.artist);
+            tracks.push({
+                id: id,
+                title: trackInfo.title,
+                artist: trackInfo.artist,
+                releaseMbid: trackInfo.releaseMbid,
+                upvotes: data.upvotes
+            });
+        }
+        
+        if(secretSearchTerm) {
+            const term = secretSearchTerm.toLowerCase();
+            tracks = tracks.filter(t => 
+                t.title.toLowerCase().includes(term) || 
+                t.artist.toLowerCase().includes(term)
+            );
+        }
+        
+        tracks.sort((a,b) => {
+            if(a.upvotes === -1 && b.upvotes !== -1) return 1;
+            if(a.upvotes !== -1 && b.upvotes === -1) return -1;
+            return 0;
+        });
+        
+        secretFilteredTracks = tracks;
+        secretDisplayed = 0;
+        document.getElementById('playlistContainer').innerHTML = '';
+        renderSecretBatch();
+    }
+    
+    function renderSecretBatch() {
+        const container = document.getElementById('playlistContainer');
+        const loadMoreBtn = document.getElementById('loadMoreSecretBtn');
+        
+        if(secretFilteredTracks.length === 0) {
+            container.innerHTML = `<div class="empty-state">🎵 Aucune musique dans la playlist</div>`;
+            loadMoreBtn.style.display = "none";
+            document.getElementById('statusSecret').innerHTML = "✨ Playlist vide";
+            return;
+        }
+        
+        const remaining = secretFilteredTracks.length - secretDisplayed;
+        const take = Math.min(SECRET_BATCH, remaining);
+        if(take <= 0) {
+            loadMoreBtn.style.display = "none";
+            document.getElementById('statusSecret').innerHTML = `📀 ${secretFilteredTracks.length} morceaux dans la playlist`;
+            return;
+        }
+        
+        const newSlice = secretFilteredTracks.slice(secretDisplayed, secretDisplayed + take);
+        const htmlSlice = newSlice.map((track, idx) => {
+            const realIdx = secretDisplayed + idx;
+            const isPast = track.upvotes === -1;
+            const badgeHtml = isPast 
+                ? `<span class="action-badge badge-inplaylist">✓ Déjà passé</span>`
+                : `<button class="action-badge badge-past" data-id="${track.id}" data-artist="${escapeHtml(track.artist)}">✗ Marquer passé</button>`;
+            
+            return `
+                <div class="track-item" data-secret-idx="${realIdx}">
+                    <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
+                    <div class="track-info">
+                        <div class="track-title">${escapeHtml(track.title)}</div>
+                        <div class="track-artist">${escapeHtml(track.artist)}</div>
+                    </div>
+                    ${badgeHtml}
+                </div>
+            `;
+        }).join('');
+        
+        if(secretDisplayed === 0) container.innerHTML = htmlSlice;
+        else container.insertAdjacentHTML('beforeend', htmlSlice);
+        
+        loadImagesForTracks(newSlice, secretDisplayed, '.track-item');
+        
+        secretDisplayed += take;
+        document.getElementById('statusSecret').innerHTML = `📀 ${secretFilteredTracks.length} morceaux (${secretDisplayed} affichés)`;
+        
+        if(secretDisplayed >= secretFilteredTracks.length) loadMoreBtn.style.display = "none";
+        else loadMoreBtn.style.display = "flex";
+        
+        document.querySelectorAll('#secretPanel .badge-past').forEach(btn => {
+            if(btn.getAttribute('data-listener')) return;
+            btn.setAttribute('data-listener', 'true');
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const artist = btn.getAttribute('data-artist');
+                btn.innerText = '...';
+                btn.disabled = true;
+                const result = await markAsPast(id, artist);
+                if(result.success) {
+                    btn.innerText = '✓ Déjà passé';
+                    btn.classList.remove('badge-past');
+                    btn.classList.add('badge-inplaylist');
+                    btn.disabled = true;
+                    setTimeout(() => refreshSecretPlaylist(), 500);
+                } else {
+                    btn.innerText = '✗ Marquer passé';
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+    
+    function loadMoreSecret() {
+        if(secretDisplayed >= secretFilteredTracks.length) return;
+        renderSecretBatch();
+    }
+    
+    // ========== FONCTIONS EXPLORATEUR ==========
+    async function addToPlaylist(recordingId, title, artist) {
+        try {
+            const existing = playlistCache.get(recordingId);
+            if(existing && existing.upvotes === 1) return { success: false, reason: 'already' };
+            if(existing && existing.upvotes === -1) return { success: false, reason: 'past' };
+            await playlistRef.child(recordingId).set({ u: 1, a: artist.substring(0, 40) });
+            playlistCache.set(recordingId, { upvotes: 1, artist: artist });
+            return { success: true };
+        } catch(e) { return { success: false, reason: 'error' }; }
+    }
+    
+    function getTrackStatus(recordingId) {
+        const cached = playlistCache.get(recordingId);
+        if(cached && cached.upvotes === -1) return 'past';
+        if(cached && cached.upvotes === 1) return 'inplaylist';
+        return 'add';
+    }
+    
+    function getBadgeHtml(status, recordingId, title, artist) {
+        if(status === 'add') {
+            return `<button class="action-badge badge-add-secret" data-action="add" data-id="${recordingId}" data-title="${escapeHtml(title)}" data-artist="${escapeHtml(artist)}">+ Ajouter</button>`;
+        } else if(status === 'inplaylist') {
+            return `<span class="action-badge badge-inplaylist">✓ Dans la playlist</span>`;
+        } else {
+            return `<span class="action-badge badge-inplaylist">✗ Déjà passé</span>`;
+        }
+    }
+    
+    function renderBatch() {
+        const container = document.getElementById('trackListContainer');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        
+        if(!currentTracks.length) {
+            container.innerHTML = `<div class="empty-state">🎡 Aucune musique trouvée</div>`;
+            loadMoreBtn.style.display = "none";
+            return;
+        }
+        const remaining = currentTracks.length - displayedCount;
+        const take = Math.min(BATCH_SIZE, remaining);
+        if(take <= 0) {
+            loadMoreBtn.style.display = "none";
+            document.getElementById('statusMessage').innerHTML = `✨ ${fullTracksCount} morceaux (${displayedCount} affichés)`;
+            return;
+        }
+        const newSlice = currentTracks.slice(displayedCount, displayedCount + take);
+        const htmlSlice = newSlice.map((track, idx) => {
+            const realIdx = displayedCount + idx;
+            const status = getTrackStatus(track.id);
+            const badgeHtml = getBadgeHtml(status, track.id, track.title, track.artist);
+            return `
+                <div class="track-item" data-idx="${realIdx}">
+                    <img class="track-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23332d55' stroke='%23F4A261' stroke-width='1'/%3E%3Cpolygon points='40,35 70,50 40,65' fill='%23F4A261'/%3E%3C/svg%3E" alt="cover">
+                    <div class="track-info">
+                        <div class="track-title">${escapeHtml(track.title)}</div>
+                        <div class="track-artist">${escapeHtml(track.artist)}</div>
+                    </div>
+                    ${badgeHtml}
+                </div>
+            `;
+        }).join('');
+        
+        if(displayedCount === 0) container.innerHTML = htmlSlice;
+        else container.insertAdjacentHTML('beforeend', htmlSlice);
+        
+        loadImagesForTracks(newSlice, displayedCount, '.track-item');
+        displayedCount += take;
+        fullTracksCount = currentTracks.length;
+        document.getElementById('statusMessage').innerHTML = `✨ ${fullTracksCount} morceaux (${displayedCount} affichés)`;
+        
+        if(displayedCount >= currentTracks.length) loadMoreBtn.style.display = "none";
+        else loadMoreBtn.style.display = "flex";
+        
+        document.querySelectorAll('.badge-add-secret').forEach(btn => {
+            if(btn.getAttribute('data-listener')) return;
+            btn.setAttribute('data-listener', 'true');
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const title = btn.getAttribute('data-title');
+                const artist = btn.getAttribute('data-artist');
+                btn.innerText = '...';
+                btn.disabled = true;
+                const result = await addToPlaylist(id, title, artist);
+                if(result.success) {
+                    btn.innerText = '✓ Dans la playlist';
+                    btn.classList.remove('badge-add-secret');
+                    btn.classList.add('badge-inplaylist');
+                    btn.disabled = true;
+                } else if(result.reason === 'past') {
+                    btn.innerText = '✗ Déjà passé';
+                    btn.classList.remove('badge-add-secret');
+                    btn.classList.add('badge-inplaylist');
+                    btn.disabled = true;
+                } else {
+                    btn.innerText = '+ Ajouter';
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+    
+    async function searchMusic(queryRaw) {
+        const query = cleanQuery(queryRaw);
+        if(!query) return [];
+        const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(query)}&limit=45&fmt=json`;
+        try {
+            const response = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'CoachellaFlow/9.0' } });
+            if(!response.ok) throw new Error();
+            const data = await response.json();
+            let recordings = data.recordings || [];
+            recordings = recordings.filter(rec => rec.title?.trim());
+            const map = new Map();
+            for(let rec of recordings) {
+                const artist = getArtistName(rec);
+                const title = rec.title;
+                const key = `${title.toLowerCase().trim()}|${artist.toLowerCase().trim()}`;
+                if(map.has(key)) continue;
+                let releaseMbid = rec.releases?.[0]?.id || null;
+                map.set(key, { id: rec.id, title, artist, releaseMbid });
+            }
+            return Array.from(map.values());
+        } catch(err) { throw new Error("Erreur réseau"); }
+    }
+    
+    async function performSearch() {
+        let query = document.getElementById('searchInput').value;
+        query = cleanQuery(query);
+        if(!query) return;
+        document.getElementById('statusMessage').innerHTML = `🌀 Recherche...`;
+        document.getElementById('trackListContainer').innerHTML = `<div class="empty-state">🎧 Chargement...</div>`;
+        try {
+            const tracks = await searchMusic(query);
+            currentTracks = tracks;
+            displayedCount = 0;
+            fullTracksCount = tracks.length;
+            renderBatch();
+        } catch(err) {
+            document.getElementById('statusMessage').innerHTML = `❌ Erreur`;
+        }
+    }
+    
+    async function fetchSuggestions(partial) {
+        if(partial.length < 2) return [];
+        try {
+            const resp = await fetch(`https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(partial)}&limit=5&fmt=json`, {
+                headers: { 'User-Agent': 'CoachellaFlow/suggest' }
+            });
+            const data = await resp.json();
+            return (data.recordings || []).slice(0,5).map(rec => ({
+                display: `${rec.title} - ${getArtistName(rec)}`,
+                query: `${rec.title} ${getArtistName(rec)}`
+            }));
+        } catch(e) { return []; }
+    }
+    
+    // ========== GESTION ONGLETS ==========
+    let currentTab = 'explorer';
+    function switchTab(tab) {
+        currentTab = tab;
+        const explorerPanel = document.getElementById('explorerPanel');
+        const secretPanel = document.getElementById('secretPanel');
+        if(tab === 'explorer') {
+            explorerPanel.classList.remove('hidden-panel');
+            secretPanel.classList.add('hidden-panel');
+        } else {
+            explorerPanel.classList.add('hidden-panel');
+            secretPanel.classList.remove('hidden-panel');
+            refreshSecretPlaylist();
+        }
+    }
+    
+    // ========== INIT ==========
+    loadImageCacheFromStorage();
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            switchTab(btn.getAttribute('data-tab'));
+        });
+    });
+    
+    document.getElementById('searchButton').addEventListener('click', performSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') performSearch(); });
+    document.getElementById('loadMoreBtn').addEventListener('click', () => renderBatch());
+    
+    document.getElementById('searchButtonSecret').addEventListener('click', () => {
+        secretSearchTerm = document.getElementById('searchInputSecret').value;
+        refreshSecretPlaylist();
+    });
+    document.getElementById('searchInputSecret').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') {
+            secretSearchTerm = e.target.value;
+            refreshSecretPlaylist();
+        }
+    });
+    document.getElementById('loadMoreSecretBtn').addEventListener('click', loadMoreSecret);
+    
+    let suggestTimer;
+    document.getElementById('searchInput').addEventListener('input', async () => {
+        clearTimeout(suggestTimer);
+        const val = document.getElementById('searchInput').value;
+        if(val.length < 2) { document.getElementById('autocompleteList').style.display = 'none'; return; }
+        suggestTimer = setTimeout(async () => {
+            const sugg = await fetchSuggestions(val);
+            const list = document.getElementById('autocompleteList');
+            if(!sugg.length) { list.style.display = 'none'; return; }
+            list.innerHTML = sugg.map(s => `<div class="autocomplete-item" data-query="${escapeHtml(s.query)}">🎵 ${escapeHtml(s.display)}</div>`).join('');
+            list.style.display = 'block';
+            document.querySelectorAll('.autocomplete-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.getElementById('searchInput').value = el.getAttribute('data-query');
+                    list.style.display = 'none';
+                    performSearch();
+                });
+            });
+        }, 300);
+    });
+    document.addEventListener('click', (e) => {
+        if(!document.getElementById('searchInput').contains(e.target)) 
+            document.getElementById('autocompleteList').style.display = 'none';
+    });
+    
+    loadPlaylistCache();
+</script>
+</body>
+</html>
