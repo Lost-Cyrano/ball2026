@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Résultats · MDL 2026</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #fff3e8;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        /* Fond d'écran dynamique comme sur la borne Coachella Food+ */
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.3) blur(8px);
+            z-index: 0;
+        }
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.85) 100%);
+            z-index: 1;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.2rem 1rem 4rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        /* En-tête style Coachella Food+ */
+        .festival-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.7rem;
+        }
+        .sub {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+
+        /* Navigation onglets */
+        .tab-bar {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: rgba(18, 15, 32, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1.5px solid rgba(244, 162, 97, 0.5);
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #fff3e8;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn.active {
+            background: #E76F51;
+            border-color: #FFD166;
+            box-shadow: 0 0 12px rgba(231,111,81,0.6);
+            transform: scale(1.02);
+        }
+        .tab-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Spotlight winner (couronne + nom sans votes) */
+        .winner-spotlight {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            border: 1px solid #FFD166;
+        }
+        .winner-name {
+            font-size: 1.7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD966, #F4A261);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .winner-sub {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 4px;
+            color: #FFD6B0;
+        }
+
+        /* Tableau classement (épuré, sans votes affichés) */
+        .ranking-card {
+            background: rgba(18, 15, 32, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 1.2rem 0.8rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            overflow-x: auto;
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 1rem;
+        }
+        .ranking-table th {
+            text-align: left;
+            padding: 1rem 0.8rem;
+            background: rgba(231, 111, 81, 0.3);
+            font-weight: 600;
+            color: #FFD6B0;
+            border-bottom: 2px solid #F4A261;
+        }
+        .ranking-table td {
+            padding: 0.9rem 0.8rem;
+            border-bottom: 1px solid rgba(244, 162, 97, 0.25);
+            font-weight: 500;
+        }
+        .rank-number {
+            font-weight: 800;
+            color: #FFB347;
+            width: 70px;
+        }
+        .crown-icon {
+            font-size: 1.2rem;
+            margin-right: 6px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #FFD6B0;
+            font-style: italic;
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #bbaacc;
+            margin-top: 2.5rem;
+            border-top: 1px dashed rgba(244,162,97,0.3);
+            padding-top: 1.5rem;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #F4A261;
+        }
+        .refresh-info {
+            text-align: right;
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+            color: #bbaacc;
+        }
+        @media (max-width: 680px) {
+            .ranking-table th, .ranking-table td {
+                padding: 0.7rem 0.4rem;
+                font-size: 0.85rem;
+            }
+            .winner-name {
+                font-size: 1.3rem;
+            }
+            .tab-btn {
+                padding: 0.5rem 1.2rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="festival-header">
+        <div class="logo">Coachella<span>Résultats</span></div>
+        <div class="sub">🏆 Élection du Roi & de la Reine · Classement officiel</div>
+    </div>
+
+    <!-- onglets -->
+    <div class="tab-bar">
+        <button id="tabRoiBtn" class="tab-btn active">👑 Rois</button>
+        <button id="tabRieneBtn" class="tab-btn">👸 Reines</button>
+    </div>
+
+    <!-- zone winner spotlight (sans nombre de votes) -->
+    <div id="winnerSpotlight" class="winner-spotlight">
+        <div class="loading-spinner">🎤 Chargement des résultats...</div>
+    </div>
+
+    <!-- tableau principal (top 5 uniquement) -->
+    <div class="ranking-card">
+        <div id="rankingTableContainer">
+            <div class="loading-spinner">📡 Synchronisation avec la base des votes</div>
+        </div>
+    </div>
+    <div class="footer-note">
+        création de MAIRE Anael pour la MDL2026, tout droit réservé
+    </div>
+</div>
+
+<script>
+    // ---------- CONFIG FIREBASE ----------
+    // Base issue du JSON : roietriene-4fb4a-default-rtdb
+    const firebaseConfig = {
+        databaseURL: "https://roietriene-4fb4a-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // État global
+    let currentTab = "roi";     // "roi" ou "riene"
+    let roiFullList = [];        // [{ id, name, votes }] complet (trié)
+    let rieneFullList = [];      // [{ id, name, votes }] complet
+
+    // Références listeners
+    let roiRef = null;
+    let rieneRef = null;
+
+    // Éléments DOM
+    const tabRoiBtn = document.getElementById('tabRoiBtn');
+    const tabRieneBtn = document.getElementById('tabRieneBtn');
+    const rankingContainer = document.getElementById('rankingTableContainer');
+    const winnerSpotlightDiv = document.getElementById('winnerSpotlight');
+
+    // Helper: obtenir les 5 premiers
+    function getTopFive(list) {
+        return list.slice(0, 5);
+    }
+
+    // Mise à jour du spotlight (affiche le/la leader, sans mention des votes)
+    function updateSpotlight(topList, type) {
+        if (!topList || topList.length === 0) {
+            winnerSpotlightDiv.innerHTML = `<div style="text-align:center">✨ En attente des premiers résultats ✨</div>`;
+            return;
+        }
+        const top = topList[0];
+        const isRoi = (type === 'roi');
+        const crown = isRoi ? '👑' : '👸';
+        const title = isRoi ? 'Leader actuel · Roi' : 'Leader actuelle · Reine';
+        winnerSpotlightDiv.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;">
+                <span style="font-size:2rem;">${crown}</span>
+                <div>
+                    <div class="winner-name">${escapeHtml(top.name)}</div>
+                    <div class="winner-sub">🏅 ${title}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Échappement basique pour éviter XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // Rendu du tableau pour le top 5 (sans afficher le nombre de votes)
+    function renderRanking() {
+        if (!rankingContainer) return;
+        const isRoi = (currentTab === 'roi');
+        const fullList = isRoi ? roiFullList : rieneFullList;
+        const topFive = getTopFive(fullList);
+        
+        if (!topFive.length) {
+            rankingContainer.innerHTML = `<div class="empty-state">📭 Aucun résultat pour ${isRoi ? 'les Rois' : 'les Reines'} pour le moment.<br>Les votes remonteront bientôt.</div>`;
+            return;
+        }
+
+        // Construction tableau HTML (seulement le rang et le nom, pas les votes)
+        let html = `<table class="ranking-table">
+                        <thead>
+                            <tr><th>Classement</th><th>Nom complet</th></tr>
+                        </thead>
+                        <tbody>`;
+        topFive.forEach((candidate, idx) => {
+            const rank = idx + 1;
+            let medal = '';
+            if (rank === 1) medal = '🥇 ';
+            else if (rank === 2) medal = '🥈 ';
+            else if (rank === 3) medal = '🥉 ';
+            else medal = `${rank}. `;
+            html += `<tr>
+                        <td class="rank-number">${medal}</td>
+                        <td><strong>${escapeHtml(candidate.name)}</strong></td>
+                     </tr>`;
+        });
+        html += `</tbody>`;
+        html += `</table>`;
+        // Petit ajout subtil : mention que les votes sont confidentiels (pas affichés)
+        rankingContainer.innerHTML = html;
+    }
+
+    // Mise à jour complète de l'affichage (spotlight + tableau) avec top 5
+    function refreshUI() {
+        if (currentTab === 'roi') {
+            const topFiveRoi = getTopFive(roiFullList);
+            updateSpotlight(topFiveRoi, 'roi');
+            renderRanking();
+        } else {
+            const topFiveRiene = getTopFive(rieneFullList);
+            updateSpotlight(topFiveRiene, 'riene');
+            renderRanking();
+        }
+    }
+
+    // Tri par votes décroissants
+    function sortByVotesDesc(arr) {
+        return [...arr].sort((a, b) => b.votes - a.votes);
+    }
+
+    // Transformation des données brutes Firebase vers une liste { id, name, votes }
+    function buildCandidatesFromSnapshot(snapshot) {
+        const data = snapshot.val();
+        if (!data || typeof data !== 'object') return [];
+        const candidates = [];
+        for (const [id, info] of Object.entries(data)) {
+            if (info && typeof info === 'object') {
+                let name = info.n || `Candidat ${id}`;
+                // champ des votes : 'v' correspond au nombre de votes (d'après le fichier JSON)
+                let votes = (typeof info.v === 'number') ? info.v : 0;
+                candidates.push({
+                    id: id,
+                    name: name.trim(),
+                    votes: votes
+                });
+            }
+        }
+        const filtered = candidates.filter(c => typeof c.votes === 'number');
+        return sortByVotesDesc(filtered);
+    }
+
+    // Initialisation des listeners temps réel (ROI + RIENE) 
+    function initRealtimeListeners() {
+        // Ecoute sur "Roi"
+        const roiPath = db.ref('Roi');
+        if (roiRef) roiRef.off();
+        roiRef = roiPath.on('value', (snapshot) => {
+            roiFullList = buildCandidatesFromSnapshot(snapshot);
+            if (currentTab === 'roi') {
+                refreshUI();
+            }
+        }, (error) => {
+            console.error("Erreur écoute Roi:", error);
+            if (currentTab === 'roi') {
+                rankingContainer.innerHTML = `<div class="empty-state">⚠️ Erreur de connexion à la base des Rois. Rafraîchissez.</div>`;
+            }
+        });
+
+        // Ecoute sur "Riene" (clé exacte du JSON : "Riene")
+        const rienePath = db.ref('Riene');
+        if (rieneRef) rieneRef.off();
+        rieneRef = rienePath.on('value', (snapshot) => {
+            rieneFullList = buildCandidatesFromSnapshot(snapshot);
+            if (currentTab === 'riene') {
+                refreshUI();
+            }
+        }, (error) => {
+            console.error("Erreur écoute Riene:", error);
+        });
+    }
+
+    // Changer d'onglet et rafraîchir
+    function setActiveTab(tab) {
+        currentTab = tab;
+        if (tab === 'roi') {
+            tabRoiBtn.classList.add('active');
+            tabRieneBtn.classList.remove('active');
+        } else {
+            tabRieneBtn.classList.add('active');
+            tabRoiBtn.classList.remove('active');
+        }
+        refreshUI();
+    }
+
+    // Chargement initial rapide (pour ne pas avoir de temps mort)
+    async function fetchInitialData() {
+        try {
+            const [roiSnap, rieneSnap] = await Promise.all([
+                db.ref('Roi').once('value'),
+                db.ref('Riene').once('value')
+            ]);
+            roiFullList = buildCandidatesFromSnapshot(roiSnap);
+            rieneFullList = buildCandidatesFromSnapshot(rieneSnap);
+            refreshUI();
+        } catch (err) {
+            console.warn("Erreur chargement initial", err);
+            rankingContainer.innerHTML = `<div class="empty-state">🔌 Impossible de contacter la base des votes. Vérifiez votre connexion.</div>`;
+            winnerSpotlightDiv.innerHTML = `<div style="text-align:center">🎵 Résultats temporairement indisponibles</div>`;
+        }
+        // Lance les listeners temps réel après le premier fetch
+        initRealtimeListeners();
+    }
+
+    // Lancement au chargement complet du DOM
+    document.addEventListener('DOMContentLoaded', () => {
+        // Événements onglets
+        tabRoiBtn.addEventListener('click', () => {
+            if (currentTab === 'roi') return;
+            setActiveTab('roi');
+        });
+        tabRieneBtn.addEventListener('click', () => {
+            if (currentTab === 'riene') return;
+            setActiveTab('riene');
+        });
+        fetchInitialData();
+    });
+</script>
+</body>
+</html>
