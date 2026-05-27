@@ -1,1 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella AdmissionEntry · Gestion des entrées</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+        }
+        
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 1rem 2rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        .festival-header {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+        .logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.6rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+        .subtitle {
+            font-size: 0.75rem;
+            color: #F4A261;
+            margin-top: 6px;
+            opacity: 0.9;
+        }
+
+        .search-zone {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .search-arena {
+            background: rgba(15, 12, 28, 0.75);
+            backdrop-filter: blur(14px);
+            border-radius: 60px;
+            padding: 0.3rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .search-flex {
+            display: flex;
+            align-items: center;
+            background: #0a0818cc;
+            border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1.6rem;
+            gap: 0.4rem;
+        }
+        .search-icon {
+            color: #F4A261;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        #searchInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.85rem 0;
+            font-size: 1rem;
+            color: #FFE8D6;
+            outline: none;
+            font-weight: 500;
+        }
+        #searchInput::placeholder {
+            color: #b8a9cf;
+            font-weight: 400;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #F4A261;
+            margin: 0.2rem 0 0.8rem;
+            min-height: 1.6rem;
+        }
+
+        .two-columns {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .column {
+            flex: 1;
+            min-width: 320px;
+            background: rgba(10, 8, 24, 0.4);
+            border-radius: 24px;
+            padding: 0.8rem;
+            backdrop-filter: blur(4px);
+        }
+        .column-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #FFD166;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #F4A261;
+        }
+
+        .student-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .student-item {
+            background: rgba(18, 15, 32, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(244, 162, 97, 0.25);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .student-item:hover {
+            background: rgba(244, 162, 97, 0.15);
+            border-color: #F4A261;
+            transform: translateX(4px);
+        }
+        .student-item.mdl-yes {
+            border-left: 4px solid #2a6b4e;
+        }
+        .student-item.mdl-no {
+            border-left: 4px solid #6a2e3e;
+        }
+        .student-item.entered {
+            opacity: 0.7;
+            cursor: default;
+            border-left-color: #888;
+        }
+        .student-item.entered:hover {
+            transform: none;
+            background: rgba(18, 15, 32, 0.7);
+        }
+        .student-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #FFEFDA;
+            word-break: break-word;
+            flex: 1;
+        }
+        .student-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #FFD166;
+            background: rgba(0,0,0,0.4);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            margin-left: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .empty-column {
+            text-align: center;
+            padding: 2rem;
+            color: #b8a9cf;
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1a1730;
+            border-radius: 32px;
+            padding: 1.8rem;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #F4A261;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .modal-content p {
+            margin-bottom: 1.8rem;
+            font-size: 1rem;
+            color: #FFEFDA;
+        }
+        .modal-content strong {
+            color: #FFD166;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 0.7rem 1.4rem;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+        .modal-confirm {
+            background: #E76F51;
+            color: white;
+        }
+        .modal-cancel {
+            background: #4a3a5c;
+            color: white;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #cabce6;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #352d50;
+        }
+
+        @media (max-width: 800px) {
+            .two-columns {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="festival-header">
+        <div class="logo">Coachella<span>AdmissionEntry</span></div>
+        <div class="subtitle">🎫 Cliquez sur un nom pour valider son entrée</div>
+    </div>
+
+    <div class="search-zone">
+        <div class="search-arena">
+            <div class="search-flex">
+                <div class="search-icon">🔍</div>
+                <input type="text" id="searchInput" placeholder="Rechercher par nom, prénom ou ID..." autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status"></div>
+
+    <div class="two-columns" id="twoColumns">
+        <div class="column">
+            <div class="column-title">✅ Déjà entrés</div>
+            <div id="enteredList" class="student-list"></div>
+        </div>
+        <div class="column">
+            <div class="column-title">⏳ En attente d'entrée</div>
+            <div id="waitingList" class="student-list"></div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <span>Coachella AdmissionEntry · MDL 2026 · Mise à jour en temps réel</span>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <p>Valider l'entrée de <strong id="modalStudentName"></strong> ?</p>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-confirm" id="modalConfirmBtn">✅ Valider</button>
+            <button class="modal-btn modal-cancel" id="modalCancelBtn">❌ Annuler</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== CONFIGURATION DES BASES DE DONNÉES ====================
+    const MAIN_DB_URL = "https://admission-e0135-default-rtdb.europe-west1.firebasedatabase.app/";
+    const ROI_DB_URL = "https://roietriene-4fb4a-default-rtdb.europe-west1.firebasedatabase.app/";
+    const FOOD_DB_URL = "https://coachellafoodplus-1323-default-rtdb.europe-west1.firebasedatabase.app/";
+    
+    // Initialisation de l'application principale
+    const mainApp = firebase.initializeApp({ databaseURL: MAIN_DB_URL }, "main");
+    const mainDatabase = firebase.database(mainApp);
+    const mainRef = mainDatabase.ref('/');
+    
+    // Initialisation de l'application pour la base ROI/RIENE
+    const roiApp = firebase.initializeApp({ databaseURL: ROI_DB_URL }, "roi");
+    const roiDatabase = firebase.database(roiApp);
+    
+    // Initialisation de l'application pour la base FOOD
+    const foodApp = firebase.initializeApp({ databaseURL: FOOD_DB_URL }, "food");
+    const foodDatabase = firebase.database(foodApp);
+    
+    // ==================== VARIABLES GLOBALES ====================
+    let allStudents = [];
+    let searchTerm = "";
+    let isListening = false;
+    
+    // Fond d'écran
+    const backgrounds = [
+        "https://media.vogue.fr/photos/5c361493bc36eb0e4a6d0a92/2:3/w_2560%2Cc_limit/coachella_9787.jpeg?lang=eng",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        document.getElementById('dynamicBg').style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+    }
+    setRandomBackground();
+    
+    // ==================== ÉCOUTE EN TEMPS RÉEL ====================
+    function initRealtimeSync() {
+        if (isListening) return;
+        isListening = true;
+        
+        mainRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            const students = [];
+            
+            if (data) {
+                for (const [nomPrenom, info] of Object.entries(data)) {
+                    if (info && typeof info === 'object') {
+                        students.push({
+                            key: nomPrenom,
+                            nomPrenom: nomPrenom,
+                            id: info.i || "????",
+                            mdl: info.m === "1" || info.m === 1 ? 1 : 0,
+                            e: info.e || "O",
+                            sex: info.s === "garçon" || info.s === "1" ? 1 : (info.s === "fille" || info.s === "0" ? 0 : 1)
+                        });
+                    }
+                }
+            }
+            
+            students.sort((a, b) => a.nomPrenom.localeCompare(b.nomPrenom));
+            allStudents = students;
+            applyFilterAndRender();
+            showStatus(`📋 ${allStudents.length} élèves chargés`);
+            
+        }, (error) => {
+            console.error("Erreur écoute Firebase:", error);
+            showStatus("❌ Erreur de connexion à la base principale");
+        });
+    }
+    
+    // ==================== FILTRE RECHERCHE ====================
+    function normalizeString(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+    
+    function matchesSearch(student) {
+        if (!searchTerm.trim()) return true;
+        const term = normalizeString(searchTerm.trim());
+        const nameNorm = normalizeString(student.nomPrenom);
+        const idNorm = student.id.toString();
+        return nameNorm.includes(term) || idNorm.includes(term);
+    }
+    
+    function applyFilterAndRender() {
+        const filtered = allStudents.filter(matchesSearch);
+        renderTwoColumns(filtered);
+    }
+    
+    // ==================== RENDU DEUX COLONNES ====================
+    function renderTwoColumns(students) {
+        const entered = students.filter(s => s.e === "I" || s.e === "i");
+        const waiting = students.filter(s => s.e !== "I" && s.e !== "i");
+        
+        entered.sort((a, b) => a.nomPrenom.localeCompare(b.nomPrenom));
+        waiting.sort((a, b) => a.nomPrenom.localeCompare(b.nomPrenom));
+        
+        // Colonne gauche - entrés
+        const enteredContainer = document.getElementById('enteredList');
+        if (entered.length === 0) {
+            enteredContainer.innerHTML = `<div class="empty-column">Aucun élève entré</div>`;
+        } else {
+            enteredContainer.innerHTML = entered.map(student => renderStudentItem(student, true)).join('');
+        }
+        
+        // Colonne droite - en attente
+        const waitingContainer = document.getElementById('waitingList');
+        if (waiting.length === 0) {
+            waitingContainer.innerHTML = `<div class="empty-column">Tout le monde est entré ! 🎉</div>`;
+        } else {
+            waitingContainer.innerHTML = waiting.map(student => renderStudentItem(student, false)).join('');
+        }
+        
+        // Attacher les événements click (uniquement pour les non-entrés)
+        document.querySelectorAll('#waitingList .student-item').forEach(el => {
+            const key = el.getAttribute('data-key');
+            const student = allStudents.find(s => s.key === key);
+            if (student && (student.e !== "I" && student.e !== "i")) {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openConfirmModal(student);
+                });
+            }
+        });
+    }
+    
+    function renderStudentItem(student, isEntered) {
+        const mdlClass = student.mdl === 1 ? 'mdl-yes' : 'mdl-no';
+        const enteredClass = isEntered ? 'entered' : '';
+        return `
+            <div class="student-item ${mdlClass} ${enteredClass}" data-key="${escapeHtml(student.key)}">
+                <span class="student-name">${escapeHtml(student.nomPrenom)}</span>
+                <span class="student-id">#${escapeHtml(student.id)}</span>
+            </div>
+        `;
+    }
+    
+    // ==================== MODALE DE CONFIRMATION ====================
+    let currentModalStudent = null;
+    const modal = document.getElementById('confirmModal');
+    const modalStudentName = document.getElementById('modalStudentName');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    
+    function openConfirmModal(student) {
+        if (student.e === "I" || student.e === "i") return;
+        currentModalStudent = student;
+        modalStudentName.innerText = student.nomPrenom;
+        modal.style.display = 'flex';
+    }
+    
+    function closeModal() {
+        modal.style.display = 'none';
+        currentModalStudent = null;
+    }
+    
+    async function confirmEntry() {
+        if (!currentModalStudent) return;
+        const student = currentModalStudent;
+        const studentKey = student.key;
+        const studentName = student.nomPrenom;
+        const studentId = student.id;
+        const studentSex = student.sex;
+        
+        closeModal();
+        showStatus(`⏳ Validation de l'entrée de ${studentName}...`);
+        
+        try {
+            // 1. Mettre à jour la base principale : e = "I"
+            await mainRef.child(studentKey).update({ e: "I" });
+            console.log("✅ Base principale mise à jour");
+            
+            // 2. Mettre à jour dans ROI ou RIENE
+            const targetPath = studentSex === 1 ? "Roi" : "Riene";
+            await roiDatabase.ref(targetPath).child(studentId).set({
+                n: studentName,
+                vg: 1,
+                vf: 1,
+                v: 0
+            });
+            console.log(`✅ ${targetPath} mis à jour pour ${studentId}`);
+            
+            // 3. Mettre à jour la base FoodPlus
+            await foodDatabase.ref('U').child(studentId).set({
+                c: 2,
+                b: 4,
+                n: 8
+            });
+            console.log(`✅ FoodPlus mis à jour pour ${studentId}`);
+            
+            showStatus(`✅ ${studentName} (#${studentId}) est entré(e) !`);
+            
+        } catch (error) {
+            console.error("❌ Erreur détaillée:", error);
+            let errorMsg = error.message;
+            if (errorMsg.includes("PERMISSION_DENIED")) {
+                errorMsg = "Permission refusée. Vérifiez les règles de sécurité des bases de données.";
+            } else if (errorMsg.includes("NETWORK")) {
+                errorMsg = "Problème réseau. Vérifiez votre connexion.";
+            }
+            showStatus(`❌ Erreur: ${errorMsg}`);
+        }
+    }
+    
+    // ==================== UTILITAIRES ====================
+    let statusTimeout;
+    function showStatus(msg) {
+        const statusDiv = document.getElementById('statusMessage');
+        statusDiv.innerHTML = msg;
+        if (statusTimeout) clearTimeout(statusTimeout);
+        statusTimeout = setTimeout(() => {
+            if (document.getElementById('statusMessage').innerHTML === msg) {
+                document.getElementById('statusMessage').innerHTML = "";
+            }
+        }, 4000);
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    // ==================== RECHERCHE EN TEMPS RÉEL ====================
+    function setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            applyFilterAndRender();
+        });
+    }
+    
+    // ==================== INITIALISATION ====================
+    function init() {
+        setupSearch();
+        initRealtimeSync();
+        showStatus("🔄 Connexion aux bases de données...");
+    }
+    
+    modalConfirmBtn.addEventListener('click', confirmEntry);
+    modalCancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    
+    init();
+</script>
+</body>
+</html>
