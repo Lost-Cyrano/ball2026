@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Scanner de QR Code - Lecteur visuel</title>
+    <!-- Utilisation de la bibliothèque html5-qrcode pour un scan performant -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0b2b3b 0%, #1a4a6f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Carte principale */
+        .scanner-card {
+            max-width: 700px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            backdrop-filter: blur(2px);
+            transition: transform 0.2s ease;
+        }
+
+        .scanner-card:hover {
+            transform: scale(1.01);
+        }
+
+        /* En-tête */
+        .header {
+            background: #022b36;
+            padding: 1.5rem 1.8rem;
+            color: white;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: "📷";
+            font-size: 1.8rem;
+        }
+
+        .header p {
+            margin-top: 8px;
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+
+        /* Zone de visualisation de la caméra */
+        .camera-container {
+            padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+            background: #f4f9fe;
+        }
+
+        .video-frame {
+            background: #000;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            aspect-ratio: 4 / 3;
+        }
+
+        #reader {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* overlay info pendant scan */
+        .scan-hint {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: #0a4b62;
+            font-weight: 500;
+            background: #e2f0f7;
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+
+        .controls {
+            padding: 0.8rem 1.5rem 1.2rem 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            background: #f4f9fe;
+        }
+
+        button {
+            background: #1f6392;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        button i {
+            font-style: normal;
+            font-weight: normal;
+            font-size: 1.1rem;
+        }
+
+        button:hover {
+            background: #0c4b6e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .btn-stop {
+            background: #6c757d;
+        }
+
+        .btn-stop:hover {
+            background: #49555f;
+        }
+
+        .result-area {
+            padding: 0 1.5rem 1.8rem 1.5rem;
+            background: #f4f9fe;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+            border-left: 6px solid #2c9b77;
+            transition: 0.2s;
+        }
+
+        .result-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #2c9b77;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qr-text {
+            font-family: 'Courier New', 'Fira Code', monospace;
+            font-size: 1.1rem;
+            word-break: break-word;
+            white-space: pre-wrap;
+            color: #022b36;
+            font-weight: 500;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 1rem;
+            border: 1px solid #e2edf2;
+            margin-top: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .empty-message {
+            color: #8ba0aa;
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: normal;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 1rem;
+            background: #e2edf2;
+            color: #2c5a6e;
+        }
+
+        @media (max-width: 550px) {
+            .scanner-card {
+                border-radius: 1.5rem;
+            }
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            button {
+                padding: 7px 18px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanner-card">
+    <div class="header">
+        <h1>Scan QR Code</h1>
+        <p>Placez un QR code face à la caméra · Décodage instantané</p>
+    </div>
+
+    <div class="camera-container">
+        <div class="video-frame">
+            <div id="reader" style="width:100%; height:100%;"></div>
+        </div>
+        <div class="scan-hint" id="scanHint">
+            ⚡ Prêt à scanner
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="startScanBtn">
+            <i>▶️</i> Démarrer le scan
+        </button>
+        <button id="stopScanBtn" class="btn-stop">
+            <i>⏹️</i> Arrêter caméra
+        </button>
+    </div>
+
+    <div class="result-area">
+        <div class="result-card">
+            <div class="result-label">
+                📄 TEXTE DÉCODÉ DU QR CODE
+            </div>
+            <div id="qrResultDisplay" class="qr-text">
+                <span class="empty-message">⏳ Aucun QR scanné pour le moment. Cliquez sur "Démarrer le scan" et présentez un QR code.</span>
+            </div>
+        </div>
+    </div>
+    <footer>
+        🔍 Scanner QR temps réel — Le texte apparaît automatiquement dès qu'un QR valide est détecté
+    </footer>
+</div>
+
+<script>
+    // Variables globales pour gérer l'instance du scanner
+    let html5QrCode = null;      // instance du scanner
+    let isScanning = false;       // état du scan
+    let currentCameraId = null;   // pour garder trace (optionnel)
+    
+    // Éléments DOM
+    const readerDiv = document.getElementById("reader");
+    const startBtn = document.getElementById("startScanBtn");
+    const stopBtn = document.getElementById("stopScanBtn");
+    const resultDisplayDiv = document.getElementById("qrResultDisplay");
+    const scanHintSpan = document.getElementById("scanHint");
+
+    // Fonction pour afficher le texte scanné dans la zone de résultat
+    function displayScannedText(decodedText) {
+        // Formatage propre : on affiche le texte exactement comme lu
+        // On gère également les cas où le texte serait très long
+        if (!decodedText || decodedText.trim() === "") {
+            resultDisplayDiv.innerHTML = `<span class="empty-message">⚠️ QR Code vide ou illisible</span>`;
+            return;
+        }
+        
+        // Amélioration visuelle: on préserve les retours à la ligne, URLs, etc.
+        const formattedText = escapeHtml(decodedText);
+        resultDisplayDiv.innerHTML = `<div style="font-family: inherit;">${formattedText}</div>`;
+        
+        // Optionnel: changement subtil du hint pour confirmer détection
+        scanHintSpan.innerHTML = "✅ QR détecté !";
+        scanHintSpan.style.backgroundColor = "#c8f0e1";
+        scanHintSpan.style.transition = "0.2s";
+        
+        // Remettre le hint normal après 2 secondes (mais reste en mode scan)
+        setTimeout(() => {
+            if (isScanning) {
+                scanHintSpan.innerHTML = "📷 Caméra active - Scrutez un QR code";
+                scanHintSpan.style.backgroundColor = "#e2f0f7";
+            } else {
+                scanHintSpan.innerHTML = "⏸️ Scan arrêté";
+                scanHintSpan.style.backgroundColor = "#e2f0f7";
+            }
+        }, 1800);
+    }
+
+    // Simple fonction pour échapper caractères HTML (sécurité)
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        }); // préserve emojis
+    }
+    
+    // Afficher un message d'erreur convivial dans la zone de résultat
+    function showErrorMessage(msg) {
+        resultDisplayDiv.innerHTML = `<span class="empty-message" style="color:#b13e3e;">⚠️ ${escapeHtml(msg)}</span>`;
+    }
+    
+    // Nettoyer l'instance existante du scanner et arrêter totalement
+    async function stopScanner() {
+        if (html5QrCode && isScanning) {
+            try {
+                await html5QrCode.stop();
+                console.log("Scanner arrêté proprement");
+            } catch (err) {
+                console.warn("Erreur lors de l'arrêt du scanner:", err);
+            }
+            isScanning = false;
+            html5QrCode = null;
+        } else if (html5QrCode && !isScanning) {
+            // si l'instance existe sans état scanning on la détruit aussi
+            try {
+                // tentative de stop si possible
+                await html5QrCode.stop();
+            } catch(e) {}
+            html5QrCode = null;
+        } else {
+            html5QrCode = null;
+        }
+        
+        // Nettoyer le conteneur reader (retirer les éléments vidéo fantômes)
+        // L'élément reader peut contenir des children créés par la lib.
+        // On vide proprement sans tout casser, mais on supprime les enfants vidéo/canvas.
+        while (readerDiv.firstChild) {
+            readerDiv.removeChild(readerDiv.firstChild);
+        }
+        
+        // remettre un message visuel
+        scanHintSpan.innerHTML = "⏸️ Caméra arrêtée";
+        scanHintSpan.style.backgroundColor = "#e2e9ef";
+        
+        // Option : on désactive aussi le bouton stop pour retour visuel
+        stopBtn.disabled = false; // réactiver stop si besoin
+        startBtn.disabled = false;
+    }
+    
+    // Fonction principale qui initialise le scanner avec la caméra par défaut
+    async function startScanning() {
+        // Si déjà en scan, on arrête d'abord proprement pour éviter conflits
+        if (isScanning) {
+            await stopScanner();
+            // petit délai pour éviter les conflits de camera
+            await new Promise(r => setTimeout(r, 300));
+        }
+        
+        // Nettoyer l'affichage précédent
+        while (readerDiv.firstChild) {
+            readerDiv.removeChild(readerDiv.firstChild);
+        }
+        resultDisplayDiv.innerHTML = `<span class="empty-message">🔍 Caméra en initialisation... Veuillez autoriser l'accès à la caméra.</span>`;
+        scanHintSpan.innerHTML = "📡 Demande d'accès caméra...";
+        
+        try {
+            // Créer une nouvelle instance avec configuration adaptée (détection haute précision)
+            html5QrCode = new Html5Qrcode("reader");
+            const qrConfig = {
+                fps: 25,                    // images par seconde pour la détection
+                qrbox: { width: 250, height: 250 },   // zone de recherche carrée
+                aspectRatio: 4.0/3.0,
+                showTorchButtonIfSupported: true,   // bouton lampe de poche si mobile
+                showZoomSliderIfSupported: true,
+                defaultZoomValueIfSupported: 1.5,
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ] // se concentre sur QR codes
+            };
+            
+            // On utilise la caméra arrière par défaut sur mobiles, avant sur PC
+            // "environment" = caméra arrière si dispo, sinon "user".
+            const cameraId = { facingMode: "environment" };
+            
+            await html5QrCode.start(
+                cameraId,        // préfère environnement (arrière)
+                qrConfig,
+                (decodedText, decodedResult) => {
+                    // CALLBACK DE SUCCÈS : qr scanné !
+                    console.log("QR scanné :", decodedText);
+                    // Afficher le texte dans l'interface
+                    displayScannedText(decodedText);
+                    
+                    // Option: on peut jouer un bip sonore subtil ? non pour rester léger
+                    // On peut aussi faire vibrer si mobile supporté ? Pas nécessaire.
+                    // Pour un feedback, on change temporairement la bordure
+                    const resultCard = document.querySelector('.result-card');
+                    if(resultCard) {
+                        resultCard.style.transition = "0.1s";
+                        resultCard.style.borderLeftColor = "#f4b942";
+                        setTimeout(() => {
+                            if(resultCard) resultCard.style.borderLeftColor = "#2c9b77";
+                        }, 300);
+                    }
+                },
+                (errorMessage) => {
+                    // Erreur de décodage ponctuelle (ne pas spammer la console)
+                    // On ne fait rien, c'est normal quand aucun QR n'est détecté
+                    // On évite d'afficher des erreurs à l'écran pour ne pas polluer.
+                    // Mais on peut logger discrètement:
+                    if (errorMessage && errorMessage.includes("No MultiFormat Readers")) {
+                        // ignorer
+                    }
+                }
+            ).catch(err => {
+                console.error("Erreur au démarrage du scanner:", err);
+                throw new Error(`Impossible de démarrer la caméra: ${err.message || err}`);
+            });
+            
+            isScanning = true;
+            startBtn.disabled = false;   // déjà actif mais pour cohérence
+            stopBtn.disabled = false;
+            scanHintSpan.innerHTML = "📷 Caméra active - Scrutez un QR code";
+            scanHintSpan.style.backgroundColor = "#d4f0f0";
+            // on met à jour la zone de résultat sans effacer si déjà un contenu, mais on garde
+            // Si le résultat était vide, on laisse un message sympa
+            if (resultDisplayDiv.innerText.includes("aucun QR scanné") || resultDisplayDiv.innerText.includes("initialisation")) {
+                resultDisplayDiv.innerHTML = `<span class="empty-message">✨ Scanner prêt. Placez un QR code devant la caméra.</span>`;
+            }
+            
+        } catch (error) {
+            console.error("Erreur initialisation scanner:", error);
+            let userMessage = "Impossible d'accéder à la caméra. Vérifiez les permissions et qu'aucune autre application n'utilise la caméra.";
+            if (error.name === "NotAllowedError") {
+                userMessage = "Accès caméra refusé. Veuillez autoriser l'accès à la caméra dans les paramètres de votre navigateur.";
+            } else if (error.name === "NotFoundError") {
+                userMessage = "Aucune caméra trouvée sur cet appareil.";
+            } else if (error.name === "NotReadableError") {
+                userMessage = "Caméra déjà utilisée par une autre application ou problème matériel.";
+            }
+            showErrorMessage(userMessage);
+            scanHintSpan.innerHTML = "❌ Erreur caméra";
+            scanHintSpan.style.backgroundColor = "#ffe0d9";
+            isScanning = false;
+            html5QrCode = null;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+    }
+    
+    // Fonction d'arrêt total avec nettoyage DOM
+    async function handleStop() {
+        if (!isScanning && html5QrCode) {
+            // état incohérent: on nettoie quand même
+            try {
+                if (html5QrCode.isScanning) await html5QrCode.stop();
+            } catch(e) {}
+            html5QrCode = null;
+            while (readerDiv.firstChild) readerDiv.removeChild(readerDiv.firstChild);
+            scanHintSpan.innerHTML = "⏸️ Caméra arrêtée";
+            resultDisplayDiv.innerHTML = `<span class="empty-message">⏸️ Scanner à l'arrêt. Appuyez sur "Démarrer" pour activer la caméra.</span>`;
+            return;
+        }
+        
+        if (html5QrCode && isScanning) {
+            await stopScanner(); // stop complet + nettoie
+            scanHintSpan.innerHTML = "⏸️ Caméra arrêtée";
+            // Option: affichage message d'arrêt dans le résultat si vide
+            if (!resultDisplayDiv.innerText.includes("scanné") && !resultDisplayDiv.innerText.includes("QR")) {
+                resultDisplayDiv.innerHTML = `<span class="empty-message">⏸️ Scanner arrêté. Cliquez sur Démarrer pour relancer.</span>`;
+            } else {
+                // On garde le dernier résultat scanné mais on indique que le scan est arrêté
+                // On ne modifie pas le texte affiché, mais on peut ajouter une note subtile ?
+                const currentHtml = resultDisplayDiv.innerHTML;
+                if(!currentHtml.includes("arrêté")){
+                    // on peut laisser tel quel, mais inutile de polluer
+                }
+            }
+        } else {
+            // Si aucune instance mais interface indique arrêt
+            if(readerDiv.hasChildNodes() === false){
+                // on laisse tranquille
+            }
+            scanHintSpan.innerHTML = "⏸️ Aucune caméra active";
+        }
+        startBtn.disabled = false;
+        stopBtn.disabled = false;
+    }
+    
+    // A l'initialisation de la page, on n'active pas la caméra automatiquement
+    // pour respecter l'expérience utilisateur (permission demandée au clic)
+    // Mais on prépare des gestionnaires.
+    
+    // Vérifier si le navigateur supporte la bibliothèque et le getUserMedia
+    function isCameraSupported() {
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+    
+    // Gestion des erreurs de support
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!isCameraSupported()) {
+            showErrorMessage("⚠️ Votre navigateur ne supporte pas l'accès à la caméra. Utilisez Chrome, Edge, Safari récent ou Firefox.");
+            startBtn.disabled = true;
+            stopBtn.disabled = true;
+            scanHintSpan.innerHTML = "❌ Navigateur incompatible";
+            return;
+        }
+        
+        // Initialisation: affichage message inactif
+        resultDisplayDiv.innerHTML = `<span class="empty-message">📱 Prêt à scanner. Appuyez sur "Démarrer le scan" et autorisez la caméra.</span>`;
+        scanHintSpan.innerHTML = "✨ Cliquez sur Démarrer";
+        
+        // Désactiver stop au départ car aucun scan actif
+        stopBtn.disabled = false; // peut être cliqué mais ne fait rien d'incorrect, mais logique: oui on peut stop si rien, mais on empêche pour UX
+        // En vrai au chargement aucun scan, donc on désactive stop pour éviter confusion
+        stopBtn.disabled = true;
+        
+        // Événements des boutons
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;   // empêcher multi-clics
+            try {
+                await startScanning();
+            } catch (err) {
+                console.error(err);
+                showErrorMessage("Erreur inattendue lors du démarrage.");
+                startBtn.disabled = false;
+            } finally {
+                // si le scanner n'a pas réussi, on réactive start
+                if (!isScanning) {
+                    startBtn.disabled = false;
+                } else {
+                    startBtn.disabled = false;  // En cas de succès, on reste cliquable mais le comportement stop/start gère l'arrêt avant redémarrage.
+                }
+                stopBtn.disabled = false;
+            }
+        });
+        
+        stopBtn.addEventListener('click', async () => {
+            // Désactiver momentanément le bouton stop pour éviter multiples arrêts
+            stopBtn.disabled = true;
+            await handleStop();
+            // On réactive start (déjà dans handleStop), mais stop reste actif ?
+            // après arrêt, le bouton stop est fonctionnel mais si aucun scan stop ne fait rien, on le laisse cliquable.
+            stopBtn.disabled = false;
+            startBtn.disabled = false;
+        });
+        
+        // Nettoyage si la page est fermée / unmount
+        window.addEventListener('beforeunload', async () => {
+            if (html5QrCode && isScanning) {
+                try {
+                    await html5QrCode.stop();
+                } catch(e) {}
+            }
+        });
+    });
+</script>
+</body>
+</html>
