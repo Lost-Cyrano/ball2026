@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Food+ · Administration Buvette</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <!-- QR Code Scanner (html5-qrcode) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.3) blur(8px);
+            z-index: 0;
+        }
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.85) 100%);
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 1rem 1rem 5rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        .festival-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.6rem;
+        }
+        .subtitle {
+            font-size: 0.75rem;
+            color: #F4A261;
+            margin-top: 6px;
+            opacity: 0.9;
+        }
+
+        /* Scanner Panel */
+        .scanner-panel {
+            background: rgba(18, 15, 32, 0.85);
+            backdrop-filter: blur(14px);
+            border-radius: 32px;
+            padding: 1.5rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            text-align: center;
+        }
+        .scan-btn {
+            background: #E76F51;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 1rem 2rem;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 1rem;
+        }
+        .scan-btn:active { transform: scale(0.96); }
+        .scan-btn:disabled {
+            background: #6a5a50;
+            cursor: not-allowed;
+        }
+        
+        #reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+        
+        /* Ticket Info Panel */
+        .ticket-panel {
+            background: rgba(18, 15, 32, 0.92);
+            backdrop-filter: blur(14px);
+            border-radius: 32px;
+            padding: 1.5rem;
+            border: 1px solid #FFD166;
+            margin-top: 1rem;
+        }
+        .ticket-header {
+            border-bottom: 2px solid #F4A261;
+            padding-bottom: 0.8rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ticket-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: #0a0818;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            color: #FFD166;
+        }
+        .order-items {
+            margin: 1rem 0;
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #3a2e5a;
+        }
+        .order-item-name {
+            font-weight: 600;
+        }
+        .order-item-qty {
+            background: #E76F51;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            font-weight: bold;
+        }
+        .complete-btn {
+            background: #2a8e6e;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: 0.1s;
+        }
+        .complete-btn:active { transform: scale(0.98); }
+        
+        .error-message {
+            background: rgba(231, 111, 81, 0.2);
+            border: 1px solid #E76F51;
+            border-radius: 24px;
+            padding: 1rem;
+            text-align: center;
+            color: #FFB5A0;
+        }
+        
+        .back-to-scan {
+            background: none;
+            border: 1px solid #F4A261;
+            color: #F4A261;
+            padding: 0.5rem 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .status-msg {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #FFD166;
+            margin: 0.5rem 0;
+        }
+        
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #bbaacc;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #352d50;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 550px) {
+            .container { padding: 0.8rem; }
+            .scan-btn { padding: 0.8rem 1.5rem; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="festival-header">
+        <div class="logo">Coachella<span>Food+</span></div>
+        <div class="subtitle">👨‍🍳 Administration Buvette — Scanner les tickets</div>
+    </div>
+
+    <!-- Écran principal : scanner -->
+    <div id="scanSection" class="scanner-panel">
+        <button id="startScanBtn" class="scan-btn">📷 Scanner un ticket client</button>
+        <div id="reader" style="display: none;"></div>
+        <div id="scanStatus" class="status-msg"></div>
+    </div>
+
+    <!-- Écran ticket trouvé -->
+    <div id="ticketSection" class="hidden">
+        <button id="backToScanBtn" class="back-to-scan">← Scanner un autre ticket</button>
+        <div id="ticketContent" class="ticket-panel">
+            <!-- Contenu dynamique -->
+        </div>
+    </div>
+
+    <div class="footer-note">
+        création de MAIRE Anael pour la MDL2026, tout droit réservé<br>
+        ⚡ Powered by Firebase + HTML5 QR Code
+    </div>
+</div>
+
+<script>
+    // FIREBASE
+    const firebaseConfig = {
+        databaseURL: "https://coachellafoodplus-1323-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Variables
+    let html5QrCode = null;
+    let currentTicketId = null;
+    let currentTicketData = null;
+    let isScanning = false;
+
+    // Éléments DOM
+    const scanSection = document.getElementById('scanSection');
+    const ticketSection = document.getElementById('ticketSection');
+    const startScanBtn = document.getElementById('startScanBtn');
+    const backToScanBtn = document.getElementById('backToScanBtn');
+    const readerDiv = document.getElementById('reader');
+    const scanStatus = document.getElementById('scanStatus');
+    const ticketContent = document.getElementById('ticketContent');
+
+    // Arrêter le scanner
+    async function stopScanner() {
+        if (html5QrCode && isScanning) {
+            try {
+                await html5QrCode.stop();
+                isScanning = false;
+            } catch(e) {
+                console.warn("Erreur arrêt scanner", e);
+            }
+        }
+        readerDiv.style.display = 'none';
+        startScanBtn.style.display = 'block';
+        scanStatus.innerText = '';
+    }
+
+    // Démarrer le scanner
+    async function startScanner() {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        scanStatus.innerText = "🔍 Demande d'accès à la caméra...";
+        startScanBtn.style.display = 'none';
+        readerDiv.style.display = 'block';
+        
+        try {
+            await html5QrCode.start(
+                { facingMode: "environment" }, // caméra arrière
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                onScanSuccess,
+                onScanError
+            );
+            isScanning = true;
+            scanStatus.innerText = "✅ Caméra active. Scannez le QR Code du ticket.";
+        } catch (err) {
+            console.error("Erreur démarrage caméra", err);
+            scanStatus.innerText = "❌ Impossible d'accéder à la caméra. Vérifiez les permissions.";
+            startScanBtn.style.display = 'block';
+            readerDiv.style.display = 'none';
+            isScanning = false;
+        }
+    }
+
+    // Succès du scan
+    async function onScanSuccess(decodedText, decodedResult) {
+        // Arrêter le scanner immédiatement
+        await stopScanner();
+        
+        // Analyser le QR Code
+        let ticketData;
+        try {
+            ticketData = JSON.parse(decodedText);
+        } catch(e) {
+            showError("QR Code invalide : format non reconnu");
+            return;
+        }
+        
+        const { ticketId, items, userId } = ticketData;
+        if (!ticketId || !items) {
+            showError("Ticket invalide : données manquantes");
+            return;
+        }
+        
+        // Vérifier dans Firebase si le ticket existe encore
+        try {
+            const snapshot = await db.ref(`t/${ticketId}`).once('value');
+            const ticket = snapshot.val();
+            
+            if (!ticket) {
+                showError("❌ Ticket expiré ou déjà utilisé");
+                return;
+            }
+            
+            if (ticket.status === 'completed') {
+                showError("❌ Ce ticket a déjà été traité");
+                return;
+            }
+            
+            // Ticket valide : afficher les infos
+            currentTicketId = ticketId;
+            currentTicketData = { items: ticket.items || items, userId: ticket.userId || userId };
+            displayTicketInfo(currentTicketId, currentTicketData);
+            
+        } catch(e) {
+            console.error("Erreur vérification ticket", e);
+            showError("Erreur lors de la vérification du ticket");
+        }
+    }
+    
+    function onScanError(errorMessage) {
+        // Silencieux, juste pour éviter les erreurs dans la console
+        // console.warn("Scan error", errorMessage);
+    }
+    
+    function showError(message) {
+        scanStatus.innerText = message;
+        setTimeout(() => {
+            if (scanStatus.innerText === message) {
+                scanStatus.innerText = "";
+            }
+        }, 3000);
+        // Réafficher le bouton scanner
+        startScanBtn.style.display = 'block';
+        readerDiv.style.display = 'none';
+        isScanning = false;
+    }
+    
+    function displayTicketInfo(ticketId, data) {
+        // Cacher section scan, afficher section ticket
+        scanSection.classList.add('hidden');
+        ticketSection.classList.remove('hidden');
+        
+        const items = data.items;
+        const itemsArray = Object.entries(items);
+        
+        let itemsHtml = '';
+        let totalItems = 0;
+        
+        for (const [prodId, item] of itemsArray) {
+            const qty = item.qty || item;
+            const name = item.name || `Produit ${prodId}`;
+            itemsHtml += `
+                <div class="order-item">
+                    <span class="order-item-name">${escapeHtml(name)}</span>
+                    <span class="order-item-qty">x${qty}</span>
+                </div>
+            `;
+            totalItems += qty;
+        }
+        
+        const html = `
+            <div class="ticket-header">
+                <strong>🎟️ Ticket client</strong>
+                <span class="ticket-id">${escapeHtml(ticketId)}</span>
+            </div>
+            <div class="order-items">
+                ${itemsHtml}
+            </div>
+            <div style="margin: 0.5rem 0; text-align: right; font-size: 0.8rem;">
+                Total: ${totalItems} article(s)
+            </div>
+            <button id="completeOrderBtn" class="complete-btn">✅ Finir la commande</button>
+        `;
+        
+        ticketContent.innerHTML = html;
+        
+        // Attacher événement bouton finir commande
+        document.getElementById('completeOrderBtn').addEventListener('click', completeOrder);
+    }
+    
+    async function completeOrder() {
+        if (!currentTicketId) return;
+        
+        const completeBtn = document.getElementById('completeOrderBtn');
+        completeBtn.disabled = true;
+        completeBtn.innerText = "⏳ Traitement...";
+        
+        try {
+            // Vérifier que le ticket existe encore
+            const snapshot = await db.ref(`t/${currentTicketId}`).once('value');
+            if (!snapshot.exists()) {
+                showTicketError("Ce ticket a déjà été traité ou n'existe plus");
+                return;
+            }
+            
+            // Supprimer le ticket de la base
+            await db.ref(`t/${currentTicketId}`).remove();
+            
+            // Afficher confirmation et retour au scan
+            showTicketSuccess("✅ Commande terminée ! Ticket validé.");
+            
+            // Réinitialiser et retourner au scan après 2 secondes
+            setTimeout(() => {
+                resetToScan();
+            }, 2000);
+            
+        } catch(e) {
+            console.error("Erreur lors de la finalisation", e);
+            showTicketError("❌ Erreur lors de la finalisation");
+            completeBtn.disabled = false;
+            completeBtn.innerText = "✅ Finir la commande";
+        }
+    }
+    
+    function showTicketSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'status-msg';
+        successDiv.style.background = '#2a8e6e';
+        successDiv.style.padding = '0.8rem';
+        successDiv.style.borderRadius = '40px';
+        successDiv.style.margin = '1rem 0';
+        successDiv.style.color = 'white';
+        successDiv.innerText = message;
+        ticketContent.appendChild(successDiv);
+    }
+    
+    function showTicketError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.marginTop = '1rem';
+        errorDiv.innerText = message;
+        ticketContent.appendChild(errorDiv);
+    }
+    
+    function resetToScan() {
+        // Arrêter scanner si actif
+        if (html5QrCode && isScanning) {
+            html5QrCode.stop().catch(console.warn);
+            isScanning = false;
+        }
+        
+        // Réinitialiser variables
+        currentTicketId = null;
+        currentTicketData = null;
+        
+        // Basculer l'affichage
+        ticketSection.classList.add('hidden');
+        scanSection.classList.remove('hidden');
+        
+        // Réinitialiser l'état du scanner
+        startScanBtn.style.display = 'block';
+        readerDiv.style.display = 'none';
+        scanStatus.innerText = '';
+        
+        // Nettoyer le contenu ticket
+        ticketContent.innerHTML = '';
+    }
+    
+    // Bouton retour
+    backToScanBtn.addEventListener('click', () => {
+        resetToScan();
+    });
+    
+    // Bouton démarrer scan
+    startScanBtn.addEventListener('click', () => {
+        startScanner();
+    });
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    // Nettoyage à la fermeture
+    window.addEventListener('beforeunload', () => {
+        if (html5QrCode && isScanning) {
+            html5QrCode.stop().catch(console.warn);
+        }
+    });
+</script>
+</body>
+</html>
