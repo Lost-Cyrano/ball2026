@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Bale2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        /* fond dynamique avec overlay (même identité que la 404) */
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+            transition: opacity 0.6s ease;
+        }
+        
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            position: relative;
+            z-index: 3;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* header festival */
+        .festival-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeSlideUp 0.9s ease-out;
+        }
+        
+        .logo {
+            font-size: 3.2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 10px rgba(0,0,0,0.4);
+        }
+        
+        .logo span {
+            font-weight: 300;
+            font-size: 2rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+        
+        .tagline {
+            font-size: 0.9rem;
+            color: #F4A261;
+            margin-top: 8px;
+            opacity: 0.95;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* hero section */
+        .hero {
+            margin: 2rem 0 3rem 0;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #FFE8D6, #FFD6A5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hero-desc {
+            font-size: 1rem;
+            color: #d6c5aa;
+            max-width: 580px;
+            margin: 0 auto 1.6rem;
+        }
+
+        /* cartes des liens principales (même esprit que le 404 mais avec plus de hiérarchie) */
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0 3rem;
+        }
+        
+        .card-link {
+            background: rgba(18, 15, 32, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 42px;
+            padding: 2rem 2rem;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            border: 1px solid rgba(244, 162, 97, 0.35);
+            box-shadow: 0 18px 30px -12px rgba(0,0,0,0.5);
+            flex: 1;
+            min-width: 240px;
+            max-width: 320px;
+        }
+        
+        .card-link:hover {
+            transform: translateY(-8px);
+            border-color: #F4A261;
+            background: rgba(25, 22, 45, 0.85);
+            box-shadow: 0 25px 35px -12px rgba(0,0,0,0.6);
+        }
+        
+        .card-icon {
+            font-size: 3.6rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .card-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #FFEFDA;
+            margin-bottom: 0.5rem;
+        }
+        
+        .card-desc {
+            font-size: 0.85rem;
+            color: #d2c1a5;
+            line-height: 1.4;
+        }
+        
+        /* section des suggestions musicales / vibes (comme dans 404 mais en version plus complète) */
+        .suggestions-section {
+            margin: 2rem 0 2rem;
+            text-align: center;
+            background: rgba(10, 8, 20, 0.5);
+            border-radius: 60px;
+            padding: 1.5rem 1rem;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(244, 162, 97, 0.2);
+        }
+
+        .suggestions-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #F4A261;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        
+        .vibe-text {
+            font-size: 0.95rem;
+            margin-bottom: 1.2rem;
+            color: #ffefda;
+        }
+        
+        .suggestion-tracks {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .suggestion-track {
+            background: rgba(18, 15, 32, 0.75);
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            padding: 0.6rem 1.4rem;
+            font-size: 0.85rem;
+            color: #FFE8D6;
+            border: 1px solid rgba(244, 162, 97, 0.4);
+            transition: 0.2s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .suggestion-track:hover {
+            background: #E76F51cc;
+            border-color: #E76F51;
+            transform: translateY(-2px);
+        }
+
+        .suggestion-track:active {
+            transform: scale(0.96);
+        }
+        
+        /* section infos live / event (petite touche festival) */
+        .live-highlight {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(231, 111, 81, 0.12);
+            border-radius: 48px;
+            padding: 1rem 1.8rem;
+            margin: 1rem 0 2rem;
+            border: 1px solid rgba(244, 162, 97, 0.4);
+            backdrop-filter: blur(4px);
+        }
+        
+        .live-text {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+        
+        .pulse {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: #E76F51;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(231, 111, 81, 0.7);
+            animation: pulse-animation 1.5s infinite;
+        }
+        
+        .date-badge {
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.5);
+            padding: 0.3rem 0.9rem;
+            border-radius: 40px;
+            letter-spacing: 0.5px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #cabce6;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #352d50;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        /* animations */
+        @keyframes fadeSlideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse-animation {
+            0% {
+                box-shadow: 0 0 0 0 rgba(231, 111, 81, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 8px rgba(231, 111, 81, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 111, 81, 0);
+            }
+        }
+        
+        @keyframes floatGlow {
+            0% { transform: translateY(0px); opacity: 0.7; }
+            50% { transform: translateY(-6px); opacity: 1; }
+            100% { transform: translateY(0px); opacity: 0.7; }
+        }
+        
+        /* responsive */
+        @media (max-width: 750px) {
+            .container { padding: 1.5rem 1rem 3rem; }
+            .logo { font-size: 2.4rem; }
+            .logo span { font-size: 1.5rem; }
+            .hero-title { font-size: 2rem; }
+            .card-title { font-size: 1.4rem; }
+            .card-link { padding: 1.4rem 1rem; min-width: 200px; }
+            .live-highlight { flex-direction: column; gap: 12px; align-items: flex-start; }
+        }
+        
+        /* style pour les liens actifs */
+        .btn-ghost {
+            background: transparent;
+            border: none;
+            color: #f5efe8;
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="festival-header">
+        <div class="logo">Coachella<span> Bale2026</span></div>
+        <div class="tagline">Creation de MAIRE Anael pour la MDL2026</div>
+    </div>
+
+    <div class="hero">
+        <h1 class="hero-title">Pages du site :</h1>
+        <p class="hero-desc">Retrouver votre chemin à travers toutes les pages importantes du site !</p>
+    </div>
+
+    <!-- Deux cartes principales : CoachellaFlow & Roi et Reine (exactement comme dans la page 404) -->
+    <div class="cards-grid">
+        <a href="https://honore-romane.fr/musique" class="card-link" target="_blank" rel="noopener noreferrer">
+            <div class="card-icon">🎧</div>
+            <div class="card-title">Coachella Flow</div>
+            <div class="card-desc">Playlist interactive ! Votez pour vos musiques préférées et ajoutez-en à la playlist !</div>
+        </a>
+        <a href="https://honore-romane.fr/vote" class="card-link" target="_blank" rel="noopener noreferrer">
+            <div class="card-icon">👑</div>
+            <div class="card-title">Roi & Reine</div>
+            <div class="card-desc">Voter pour élire le Roi et la Reine du bal ! Et découvrez le duo de ce soir…</div>
+        </a>
+      <a href="https://honore-romane.fr/foodplus" class="card-link" target="_blank" rel="noopener noreferrer">
+            <div class="card-icon">🍕</div>
+            <div class="card-title">Coachella Food+</div>
+            <div class="card-desc">Profitez de la buvette, commandez votre nourriture et vos boissons !</div>
+      </a>
+    </div>
+    
+</div>
+
+<script>
+    // === MÊME SYSTÈME DE FONDS D'ÉCRAN DYNAMIQUE QUE LA PAGE 404 (cohérence absolue) ===
+    const backgrounds = [
+        "https://media.vogue.fr/photos/5c361493bc36eb0e4a6d0a92/2:3/w_2560%2Cc_limit/coachella_9787.jpeg?lang=eng",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRG4Rs_YXlyUo-TdjnRiWL-ms8L5nL2Vy8Ssg&s",
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2Gic2MMtinpTa6F8bLuMg071jN2gxyT-U5w&s",
+        "data:image/jpeg;base64,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",
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRL5X9o_Ao0-O6zo_s0dMyjiOZdl-uUj1QJlA&s",
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmK3_T9rJrClaQsKdLkRzy4KEK67wXzwQ_2w&s"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        const bgDiv = document.getElementById('dynamicBg');
+        if (bgDiv) {
+            bgDiv.style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+        }
+    }
+    setRandomBackground();
+    
+    // changement de fond toutes les 25 secondes pour garder une dynamique (identique à l'esprit 404)
+    let bgInterval = setInterval(() => {
+        setRandomBackground();
+    }, 25000);
+    
+    window.addEventListener('beforeunload', () => {
+        if (bgInterval) clearInterval(bgInterval);
+    });
+    
+   document.querySelectorAll('.suggestion-track').forEach(el => {
+        el.addEventListener('click', () => {
+            const query = el.getAttribute('data-query');
+            if (query) {
+                sessionStorage.setItem('coachella_search_suggestion', query);
+                alert(`✨ suggestion "${query}" — bientôt sur CoachellaFlow ✨\n(redirection vers l'expérience musicale)`);
+                window.location.href = 'https://honore-romane.fr/musique';
+            }
+        });
+    });
+    
+    // petite animation pour rendre les cartes plus vivantes
+    const cards = document.querySelectorAll('.card-link');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+            card.style.transition = 'transform 0.2s ease, border-color 0.2s';
+        });
+    });
+</script>
+</body>
+</html>
+```
