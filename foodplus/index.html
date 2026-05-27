@@ -7,8 +7,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <!-- QR Code -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- QR Code (html5-qrcode plus stable) -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -150,7 +150,7 @@
             display: block;
         }
 
-        /* Grille produits (MacDo) */
+        /* Grille produits */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -167,7 +167,12 @@
             transition: 0.1s ease;
             border: 1px solid rgba(244, 162, 97, 0.4);
         }
-        .product-card:active {
+        .product-card.disabled {
+            opacity: 0.45;
+            filter: grayscale(0.2);
+            cursor: not-allowed;
+        }
+        .product-card:active:not(.disabled) {
             transform: scale(0.96);
             background: #E76F5144;
         }
@@ -190,6 +195,11 @@
             padding: 0.2rem 0.7rem;
             border-radius: 30px;
             margin-top: 6px;
+        }
+        .product-stock-badge {
+            font-size: 0.6rem;
+            color: #FFA559;
+            margin-top: 4px;
         }
 
         /* Panier */
@@ -238,6 +248,7 @@
         }
         .validate-btn:disabled {
             background: #5a5a6e;
+            cursor: not-allowed;
         }
         .reset-cart {
             background: none;
@@ -248,7 +259,7 @@
             cursor: pointer;
         }
 
-        /* Ticket & animation */
+        /* Ticket */
         .ticket-screen {
             background: rgba(18, 15, 32, 0.96);
             border-radius: 48px;
@@ -260,8 +271,14 @@
             background: white;
             padding: 1rem;
             border-radius: 28px;
-            display: inline-block;
-            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            margin: 1rem auto;
+            width: fit-content;
+        }
+        .qr-container canvas, .qr-container img {
+            max-width: 200px;
+            height: auto;
         }
         .info-message {
             font-size: 0.8rem;
@@ -375,13 +392,14 @@
 
     // GLOBAL
     let allProducts = [];
-    let categoriesMap = new Map(); // key: categoryId, value: array
+    let categoriesMap = new Map();
     let productMap = new Map();
     let currentUserId = null;
     let userRemaining = { cocktails: 0, boissons: 0, nourriture: 0 };
     let cart = {};
     let currentCategory = "cocktail";
     let userQuotaListener = null;
+    let stockListeners = new Map(); // productId -> ref pour écouter les changements de stock
 
     // STOCKAGE LOCAL TICKET
     const TICKET_STORAGE_KEY = "coachella_current_ticket";
@@ -389,6 +407,13 @@
 
     // IMAGE BASE URL
     const IMAGE_BASE = "https://honore-romane.fr/foodplus/produit/";
+
+    // ICONES catégories (corrigées)
+    const CATEGORY_ICONS = {
+        cocktail: "https://cdn-icons-png.flaticon.com/512/1046/1046784.png",
+        boissons: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png",
+        nourritures: "https://cdn-icons-png.flaticon.com/512/1046/1046785.png"
+    };
 
     // CHARGEMENT JSON PRODUITS
     async function loadProductsFromJSON() {
@@ -410,8 +435,44 @@
                     productMap.set(p.ID, p);
                 }
             }
+            console.log("Produits chargés", allProducts.length);
         } catch(e) {
             console.error("Erreur chargement JSON", e);
+        }
+    }
+
+    // Écouter les stocks en temps réel
+    function setupStockListeners() {
+        for (let product of allProducts) {
+            if (stockListeners.has(product.ID)) continue;
+            const stockRef = db.ref(`S/${product.ID}`);
+            const callback = stockRef.on('value', (snap) => {
+                let val = snap.val();
+                let stock = (typeof val === 'object') ? (val.stock ?? val) : val;
+                if (stock === null) stock = 0;
+                product.currentStock = stock;
+                // Vérifier si le panier dépasse le nouveau stock
+                syncCartWithStock(product.ID, stock);
+                renderProductsGrid(); // refresh visuel
+            });
+            stockListeners.set(product.ID, { ref: stockRef, callback });
+        }
+    }
+
+    // Vérifier et ajuster le panier si stock diminué
+    function syncCartWithStock(productId, newStock) {
+        const currentQty = cart[productId] || 0;
+        if (currentQty > newStock) {
+            const product = productMap.get(productId);
+            if (newStock === 0) {
+                delete cart[productId];
+                showStatus(`⚠️ ${product?.name} n'est plus disponible (rupture de stock)`);
+            } else {
+                cart[productId] = newStock;
+                showStatus(`⚠️ ${product?.name} : quantité ajustée à ${newStock} (stock limité)`);
+            }
+            renderCartUI();
+            renderProductsGrid();
         }
     }
 
@@ -441,9 +502,12 @@
                 updateRemainingUI();
                 renderCartUI();
                 renderProductsGrid();
+                // Vérifier les limites catégories après changement
+                syncCartWithUserLimits();
             }
         });
         updateRemainingUI();
+        setupStockListeners();
         return true;
     }
 
@@ -454,14 +518,27 @@
         }
     }
 
-    async function getProductStock(productId) {
-        const snap = await db.ref(`S/${productId}`).once('value');
-        let val = snap.val();
-        if(val === null) return 0;
-        return typeof val === 'object' ? (val.stock ?? val) : val;
+    // Vérifier si panier dépasse les limites utilisateur (après changement)
+    function syncCartWithUserLimits() {
+        let modified = false;
+        let catTotals = { cocktails: 0, boissons: 0, nourriture: 0 };
+        for (let [pid, qty] of Object.entries(cart)) {
+            const prod = productMap.get(pid);
+            if (prod) catTotals[prod.category === 'cocktail' ? 'cocktails' : (prod.category === 'boissons' ? 'boissons' : 'nourriture')] += qty;
+        }
+        if (catTotals.cocktails > userRemaining.cocktails) modified = true;
+        if (catTotals.boissons > userRemaining.boissons) modified = true;
+        if (catTotals.nourriture > userRemaining.nourriture) modified = true;
+        
+        if (modified) {
+            // Réduire intelligemment : on vide le panier si trop (simplifié)
+            cart = {};
+            renderCartUI();
+            renderProductsGrid();
+            showStatus("⚠️ Vos limites ont changé, le panier a été réinitialisé");
+        }
     }
 
-    // Vérification limites GLOBALES catégorie
     function getCategoryTotalInCart(category) {
         let total = 0;
         for(let [pid, qty] of Object.entries(cart)) {
@@ -471,28 +548,54 @@
         return total;
     }
 
-    async function canAddToCart(product) {
-        const currentCatTotal = getCategoryTotalInCart(product.category);
-        const newTotal = currentCatTotal + 1;
-        if(product.category === 'cocktail' && newTotal > userRemaining.cocktails) return false;
-        if(product.category === 'boissons' && newTotal > userRemaining.boissons) return false;
-        if(product.category === 'nourritures' && newTotal > userRemaining.nourriture) return false;
-        const stock = await getProductStock(product.ID);
-        const currentQty = cart[product.ID] || 0;
-        if(currentQty + 1 > stock) return false;
-        return true;
+    function isProductAvailable(product) {
+        const catTotal = getCategoryTotalInCart(product.category);
+        let limitOk = true;
+        if(product.category === 'cocktail') limitOk = catTotal < userRemaining.cocktails;
+        else if(product.category === 'boissons') limitOk = catTotal < userRemaining.boissons;
+        else if(product.category === 'nourritures') limitOk = catTotal < userRemaining.nourriture;
+        
+        const stockOk = (product.currentStock !== undefined ? product.currentStock : 0) > (cart[product.ID] || 0);
+        return limitOk && stockOk;
     }
 
     async function addToCart(productId) {
         const product = productMap.get(productId);
         if(!product) return;
-        if(await canAddToCart(product)) {
-            cart[productId] = (cart[productId] || 0) + 1;
-            renderProductsGrid();
-            renderCartUI();
-        } else {
-            showStatus("❌ Limite catégorie atteinte ou stock épuisé");
+        
+        // Vérifier stock actuel (depuis Firebase en temps réel)
+        const currentStock = product.currentStock !== undefined ? product.currentStock : await getProductStock(productId);
+        const currentQty = cart[productId] || 0;
+        
+        if(currentQty + 1 > currentStock) {
+            showStatus(`❌ Stock insuffisant pour ${product.name}`);
+            return;
         }
+        
+        const catTotal = getCategoryTotalInCart(product.category);
+        if(product.category === 'cocktail' && catTotal + 1 > userRemaining.cocktails) {
+            showStatus(`❌ Limite cocktails atteinte (max ${userRemaining.cocktails})`);
+            return;
+        }
+        if(product.category === 'boissons' && catTotal + 1 > userRemaining.boissons) {
+            showStatus(`❌ Limite boissons atteinte (max ${userRemaining.boissons})`);
+            return;
+        }
+        if(product.category === 'nourritures' && catTotal + 1 > userRemaining.nourriture) {
+            showStatus(`❌ Limite plats atteinte (max ${userRemaining.nourriture})`);
+            return;
+        }
+        
+        cart[productId] = currentQty + 1;
+        renderProductsGrid();
+        renderCartUI();
+    }
+
+    async function getProductStock(productId) {
+        const snap = await db.ref(`S/${productId}`).once('value');
+        let val = snap.val();
+        if(val === null) return 0;
+        return typeof val === 'object' ? (val.stock ?? val) : val;
     }
 
     function removeFromCart(productId) {
@@ -510,136 +613,38 @@
         renderCartUI();
     }
 
-    async function validateOrder() {
-        if(Object.keys(cart).length === 0) { showStatus("Panier vide"); return; }
-        showStatus("Vérification...");
-        // Vérifications finales
-        let totalByCat = { cocktails: 0, boissons: 0, nourriture: 0 };
-        for(let [pid, qty] of Object.entries(cart)) {
-            const prod = productMap.get(pid);
-            if(!prod) { showStatus("Erreur produit"); return; }
-            totalByCat[prod.category === 'cocktail' ? 'cocktails' : (prod.category === 'boissons' ? 'boissons' : 'nourriture')] += qty;
-            const stock = await getProductStock(pid);
-            if(qty > stock) { showStatus(`Stock insuffisant pour ${prod.name}`); return; }
-        }
-        if(totalByCat.cocktails > userRemaining.cocktails) { showStatus("Limite cocktails dépassée"); return; }
-        if(totalByCat.boissons > userRemaining.boissons) { showStatus("Limite boissons dépassée"); return; }
-        if(totalByCat.nourriture > userRemaining.nourriture) { showStatus("Limite plats dépassée"); return; }
-
-        const updates = {};
-        // Stocks
-        for(let [pid, qty] of Object.entries(cart)) {
-            const currentStock = await getProductStock(pid);
-            updates[`S/${pid}`] = currentStock - qty;
-        }
-        // Quotas user
-        const newC = userRemaining.cocktails - totalByCat.cocktails;
-        const newB = userRemaining.boissons - totalByCat.boissons;
-        const newN = userRemaining.nourriture - totalByCat.nourriture;
-        updates[`U/${currentUserId}`] = { c: newC, b: newB, n: newN };
-
-        // Ticket
-        const ticketId = `${currentUserId}_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-        const orderDetails = {};
-        for(let [pid, qty] of Object.entries(cart)) {
-            const prod = productMap.get(pid);
-            orderDetails[pid] = { name: prod.name, qty };
-        }
-        updates[`t/${ticketId}`] = { userId: currentUserId, items: orderDetails, timestamp: Date.now(), status: 'pending' };
-
-        try {
-            await db.ref().update(updates);
-            // Sauvegarde locale
-            localStorage.setItem(TICKET_STORAGE_KEY, JSON.stringify({ ticketId, orderDetails, userId: currentUserId }));
-            userRemaining = { cocktails: newC, boissons: newB, nourriture: newN };
-            updateRemainingUI();
-            cart = {};
-            renderProductsGrid();
-            renderCartUI();
-            showTicketScreen(ticketId, orderDetails);
-        } catch(e) { showStatus("❌ Erreur validation"); }
-    }
-
-    function showTicketScreen(ticketId, items) {
-        document.getElementById('orderingSection').style.display = 'none';
-        document.getElementById('ticketSection').style.display = 'block';
-        const qrDiv = document.getElementById('qrcodeContainer');
-        qrDiv.innerHTML = "";
-        const ticketData = JSON.stringify({ ticketId, items, userId: currentUserId });
-        new QRCode(qrDiv, { text: ticketData, width: 200, height: 200 });
-        
-        if(activeTicketCheckInterval) clearInterval(activeTicketCheckInterval);
-        const ticketRef = db.ref(`t/${ticketId}`);
-        activeTicketCheckInterval = setInterval(async () => {
-            const snap = await ticketRef.once('value');
-            if(!snap.exists()) {
-                clearInterval(activeTicketCheckInterval);
-                localStorage.removeItem(TICKET_STORAGE_KEY);
-                showAnimatedAndReset();
-            }
-        }, 2000);
-    }
-
-    function showAnimatedAndReset() {
-        const toast = document.createElement('div');
-        toast.className = 'toast-animation';
-        toast.innerText = '✅ Ticket validé ! Votre commande est prête. Retour à l\'accueil.';
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.remove();
-            resetToLogin();
-        }, 2000);
-    }
-
-    async function checkPersistedTicket() {
-        const stored = localStorage.getItem(TICKET_STORAGE_KEY);
-        if(!stored) return false;
-        const { ticketId, orderDetails, userId } = JSON.parse(stored);
-        const snap = await db.ref(`t/${ticketId}`).once('value');
-        if(snap.exists()) {
-            currentUserId = userId;
-            showTicketScreen(ticketId, orderDetails);
-            return true;
-        } else {
-            localStorage.removeItem(TICKET_STORAGE_KEY);
-            return false;
-        }
-    }
-
-    function resetToLogin() {
-        if(activeTicketCheckInterval) clearInterval(activeTicketCheckInterval);
-        if(userQuotaListener) userQuotaListener.off();
-        currentUserId = null;
-        cart = {};
-        localStorage.removeItem(TICKET_STORAGE_KEY);
-        document.getElementById('loginSection').style.display = 'block';
-        document.getElementById('orderingSection').style.display = 'none';
-        document.getElementById('ticketSection').style.display = 'none';
-        document.getElementById('userIdInput').value = '';
-        document.getElementById('loginError').innerText = '';
-    }
-
-    // Rendu MacDo+
     function renderProductsGrid() {
         const container = document.getElementById('productsGrid');
         const products = categoriesMap.get(currentCategory) || [];
         if(!products.length) { container.innerHTML = '<div style="text-align:center">Aucun produit</div>'; return; }
+        
         let html = '';
         for(let prod of products) {
             const qty = cart[prod.ID] || 0;
+            const available = isProductAvailable(prod);
+            const stock = prod.currentStock !== undefined ? prod.currentStock : 0;
+            const disabledClass = (!available || stock === 0) ? 'disabled' : '';
+            
             html += `
-                <div class="product-card" data-id="${prod.ID}">
+                <div class="product-card ${disabledClass}" data-id="${prod.ID}">
                     <img class="product-img" src="${prod.fullImageUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1046/1046784.png'">
                     <div class="product-name">${prod.name}</div>
                     ${qty > 0 ? `<div class="product-badge">x${qty}</div>` : ''}
+                    ${stock === 0 ? '<div class="product-stock-badge">⚠️ Rupture</div>' : ''}
                 </div>
             `;
         }
         container.innerHTML = html;
+        
         document.querySelectorAll('.product-card').forEach(card => {
             const id = card.getAttribute('data-id');
-            card.addEventListener('click', () => addToCart(id));
-            card.addEventListener('contextmenu', (e) => { e.preventDefault(); removeFromCart(id); });
+            if(card.classList.contains('disabled')) {
+                card.style.cursor = 'not-allowed';
+                card.addEventListener('click', (e) => { e.stopPropagation(); showStatus("❌ Produit indisponible"); });
+            } else {
+                card.addEventListener('click', () => addToCart(id));
+            }
+            card.addEventListener('contextmenu', (e) => { e.preventDefault(); if(!card.classList.contains('disabled')) removeFromCart(id); });
         });
     }
 
@@ -664,20 +669,142 @@
         totalContainer.innerHTML = `Total : ${totalQty} article(s)`;
     }
     window.removeCartItem = (id) => removeFromCart(id);
+    
     function showStatus(msg) {
         let div = document.getElementById('statusMessage');
         if(!div) { div = document.createElement('div'); div.id='statusMessage'; div.className='status-msg'; document.getElementById('orderingSection').prepend(div); }
         div.innerText = msg;
-        setTimeout(() => { if(div.innerText === msg) div.innerText = ''; }, 2000);
+        setTimeout(() => { if(div.innerText === msg) div.innerText = ''; }, 3000);
     }
 
-    // Navigation MacDo+ avec images
+    async function validateOrder() {
+        if(Object.keys(cart).length === 0) { showStatus("Panier vide"); return; }
+        showStatus("Vérification en cours...");
+        
+        // Vérifications finales complètes
+        let totalByCat = { cocktails: 0, boissons: 0, nourriture: 0 };
+        for(let [pid, qty] of Object.entries(cart)) {
+            const prod = productMap.get(pid);
+            if(!prod) { showStatus("Erreur produit"); return; }
+            totalByCat[prod.category === 'cocktail' ? 'cocktails' : (prod.category === 'boissons' ? 'boissons' : 'nourriture')] += qty;
+            const currentStock = await getProductStock(pid);
+            if(qty > currentStock) { showStatus(`Stock insuffisant pour ${prod.name}`); return; }
+        }
+        if(totalByCat.cocktails > userRemaining.cocktails) { showStatus("Limite cocktails dépassée"); return; }
+        if(totalByCat.boissons > userRemaining.boissons) { showStatus("Limite boissons dépassée"); return; }
+        if(totalByCat.nourriture > userRemaining.nourriture) { showStatus("Limite plats dépassée"); return; }
+
+        const updates = {};
+        for(let [pid, qty] of Object.entries(cart)) {
+            const currentStock = await getProductStock(pid);
+            updates[`S/${pid}`] = currentStock - qty;
+        }
+        
+        const newC = userRemaining.cocktails - totalByCat.cocktails;
+        const newB = userRemaining.boissons - totalByCat.boissons;
+        const newN = userRemaining.nourriture - totalByCat.nourriture;
+        updates[`U/${currentUserId}`] = { c: newC, b: newB, n: newN };
+
+        const ticketId = `${currentUserId}_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+        const orderDetails = {};
+        for(let [pid, qty] of Object.entries(cart)) {
+            const prod = productMap.get(pid);
+            orderDetails[pid] = { name: prod.name, qty };
+        }
+        updates[`t/${ticketId}`] = { userId: currentUserId, items: orderDetails, timestamp: Date.now(), status: 'pending' };
+
+        try {
+            await db.ref().update(updates);
+            localStorage.setItem(TICKET_STORAGE_KEY, JSON.stringify({ ticketId, orderDetails, userId: currentUserId }));
+            userRemaining = { cocktails: newC, boissons: newB, nourriture: newN };
+            updateRemainingUI();
+            cart = {};
+            renderProductsGrid();
+            renderCartUI();
+            showTicketScreen(ticketId, orderDetails);
+        } catch(e) { showStatus("❌ Erreur validation"); }
+    }
+
+    function showTicketScreen(ticketId, items) {
+        document.getElementById('orderingSection').style.display = 'none';
+        document.getElementById('ticketSection').style.display = 'block';
+        const qrContainer = document.getElementById('qrcodeContainer');
+        qrContainer.innerHTML = "";
+        
+        const ticketData = JSON.stringify({ ticketId, items, userId: currentUserId });
+        // Utilisation de la librairie html5-qrcode pour générer QR Code (plus fiable)
+        const qrcode = new QRCode(qrContainer, {
+            text: ticketData,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        if(activeTicketCheckInterval) clearInterval(activeTicketCheckInterval);
+        const ticketRef = db.ref(`t/${ticketId}`);
+        activeTicketCheckInterval = setInterval(async () => {
+            const snap = await ticketRef.once('value');
+            if(!snap.exists()) {
+                clearInterval(activeTicketCheckInterval);
+                localStorage.removeItem(TICKET_STORAGE_KEY);
+                showAnimatedAndReset();
+            }
+        }, 2000);
+    }
+
+    function showAnimatedAndReset() {
+        const toast = document.createElement('div');
+        toast.className = 'toast-animation';
+        toast.innerText = '✅ Ticket validé ! Votre commande est prête. Retour à l\'accueil.';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+            resetToLogin();
+        }, 2500);
+    }
+
+    async function checkPersistedTicket() {
+        const stored = localStorage.getItem(TICKET_STORAGE_KEY);
+        if(!stored) return false;
+        const { ticketId, orderDetails, userId } = JSON.parse(stored);
+        const snap = await db.ref(`t/${ticketId}`).once('value');
+        if(snap.exists()) {
+            currentUserId = userId;
+            showTicketScreen(ticketId, orderDetails);
+            return true;
+        } else {
+            localStorage.removeItem(TICKET_STORAGE_KEY);
+            return false;
+        }
+    }
+
+    function resetToLogin() {
+        if(activeTicketCheckInterval) clearInterval(activeTicketCheckInterval);
+        if(userQuotaListener) userQuotaListener.off();
+        // Nettoyer les listeners de stock
+        for(let [pid, {ref, callback}] of stockListeners.entries()) {
+            ref.off('value', callback);
+        }
+        stockListeners.clear();
+        currentUserId = null;
+        cart = {};
+        localStorage.removeItem(TICKET_STORAGE_KEY);
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('orderingSection').style.display = 'none';
+        document.getElementById('ticketSection').style.display = 'none';
+        document.getElementById('userIdInput').value = '';
+        document.getElementById('loginError').innerText = '';
+    }
+
+    // Navigation MacDo+
     function buildMacDoNav() {
         const nav = document.getElementById('categoriesNav');
         const cats = [
-            { id: 'cocktail', label: 'Cocktails', icon: '🍸', img: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png' },
-            { id: 'boissons', label: 'Boissons', img: 'https://cdn-icons-png.flaticon.com/512/2553/2553691.png' },
-            { id: 'nourritures', label: 'Plats', img: 'https://cdn-icons-png.flaticon.com/512/1046/1046785.png' }
+            { id: 'cocktail', label: 'Cocktails', img: CATEGORY_ICONS.cocktail },
+            { id: 'boissons', label: 'Boissons', img: CATEGORY_ICONS.boissons },
+            { id: 'nourritures', label: 'Plats', img: CATEGORY_ICONS.nourritures }
         ];
         nav.innerHTML = '';
         cats.forEach(cat => {
