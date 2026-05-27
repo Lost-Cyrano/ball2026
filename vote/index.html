@@ -1,1 +1,716 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Élection · Roi & Reine du Bal</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.75) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 1rem 3rem;
+            position: relative;
+            z-index: 3;
+        }
+        .festival-header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .logo {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        .logo span {
+            font-weight: 300;
+            font-size: 1.6rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+        .login-panel {
+            background: rgba(18, 15, 32, 0.92);
+            backdrop-filter: blur(14px);
+            border-radius: 48px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid #F4A261;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .user-input-group {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        #userIdInput {
+            background: #0a0818;
+            border: 1.5px solid #F4A261;
+            padding: 0.9rem 1.2rem;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            color: white;
+            text-align: center;
+            width: 200px;
+            font-weight: 600;
+            outline: none;
+        }
+        #loginBtn {
+            background: #E76F51;
+            border: none;
+            padding: 0.9rem 2rem;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        #loginBtn:active { transform: scale(0.96); }
+        .help-link {
+            display: inline-block;
+            margin-top: 1.2rem;
+            background: rgba(244, 162, 97, 0.15);
+            border: 1px solid #F4A261;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: #F4A261;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .help-link:active { transform: scale(0.96); }
+        .search-zone {
+            margin-bottom: 1.5rem;
+        }
+        .search-arena {
+            background: rgba(15, 12, 28, 0.75);
+            backdrop-filter: blur(14px);
+            border-radius: 60px;
+            padding: 0.3rem;
+            border: 1px solid rgba(244, 162, 97, 0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .search-flex {
+            display: flex;
+            align-items: center;
+            background: #0a0818cc;
+            border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1.6rem;
+            gap: 0.4rem;
+        }
+        .search-icon {
+            color: #F4A261;
+            font-size: 1.1rem;
+        }
+        #searchInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.85rem 0;
+            font-size: 1rem;
+            color: #FFE8D6;
+            outline: none;
+            font-weight: 500;
+        }
+        #searchInput::placeholder {
+            color: #b8a9cf;
+        }
+        .two-columns {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .column {
+            flex: 1;
+            min-width: 350px;
+            background: rgba(10, 8, 24, 0.5);
+            border-radius: 28px;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+        .column-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #F4A261;
+        }
+        .column-title.roi { color: #FFD166; }
+        .column-title.reine { color: #FFB5A7; }
+        .status-badge {
+            text-align: center;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.5);
+            border-radius: 40px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .candidate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .candidate-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .candidate-list::-webkit-scrollbar-track {
+            background: #2a2545;
+            border-radius: 4px;
+        }
+        .candidate-list::-webkit-scrollbar-thumb {
+            background: #F4A261;
+            border-radius: 4px;
+        }
+        .candidate-item {
+            background: rgba(18, 15, 32, 0.8);
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(244, 162, 97, 0.3);
+            transition: all 0.2s ease;
+        }
+        .candidate-item:hover {
+            background: rgba(244, 162, 97, 0.1);
+            border-color: #F4A261;
+        }
+        .candidate-info {
+            display: flex;
+            gap: 1rem;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        .candidate-name {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .candidate-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #FFD166;
+            background: rgba(0,0,0,0.4);
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+        }
+        .vote-btn {
+            background: #E76F51;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.1s;
+            color: white;
+        }
+        .vote-btn:active { transform: scale(0.96); }
+        .vote-btn:disabled {
+            background: #6a5a50;
+            cursor: not-allowed;
+        }
+        .empty-candidate {
+            text-align: center;
+            padding: 2rem;
+            color: #b8a9cf;
+        }
+        .status-msg {
+            text-align: center;
+            font-size: 0.8rem;
+            margin: 0.5rem;
+            color: #FFD166;
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #cabce6;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #352d50;
+        }
+        .user-quota {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 0.6rem 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            border: 1px solid rgba(244, 162, 97, 0.3);
+        }
+        button { cursor: pointer; }
+        @media (max-width: 800px) {
+            .two-columns { flex-direction: column; }
+            .column { min-width: auto; }
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container" id="app">
+    <div id="loginSection">
+        <div class="login-panel">
+            <div class="logo">Coachella<span>Élection</span></div>
+            <div style="margin: 0.5rem 0;">👑 Votez pour votre Roi & Reine du Bal</div>
+            <div class="user-input-group">
+                <input type="number" id="userIdInput" placeholder="Votre ID à 4 chiffres" maxlength="4">
+                <button id="loginBtn">VALIDER</button>
+            </div>
+            <div id="loginError" class="status-msg" style="color:#E76F51;"></div>
+            <a href="./how-it-work.html" class="help-link">❓ Comment voter ?</a>
+        </div>
+    </div>
+
+    <div id="votingSection" style="display:none;">
+        <div class="festival-header">
+            <div class="logo">Coachella<span>Élection</span></div>
+        </div>
+        <div id="userStatus" class="user-quota"></div>
+        
+        <div class="search-zone">
+            <div class="search-arena">
+                <div class="search-flex">
+                    <div class="search-icon">🔍</div>
+                    <input type="text" id="searchInput" placeholder="Rechercher par nom, prénom ou ID..." autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div class="two-columns">
+            <div class="column">
+                <div class="column-title roi">👑 Candidats Roi</div>
+                <div id="roiStatus" class="status-badge"></div>
+                <div id="roiList" class="candidate-list"></div>
+            </div>
+            <div class="column">
+                <div class="column-title reine">👸 Candidats Reine</div>
+                <div id="reineStatus" class="status-badge"></div>
+                <div id="reineList" class="candidate-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        création de MAIRE Anael pour la MDL2026, tout droit réservé
+    </div>
+</div>
+
+<script>
+    // Configuration Firebase - Base ROI/RIENE
+    const DB_URL = "https://roietriene-4fb4a-default-rtdb.europe-west1.firebasedatabase.app/";
+    const firebaseConfig = { databaseURL: DB_URL };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Fonds d'écran aléatoires
+    const backgrounds = [
+        "https://media.vogue.fr/photos/5c361493bc36eb0e4a6d0a92/2:3/w_2560%2Cc_limit/coachella_9787.jpeg?lang=eng",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=2070&auto=format"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        document.getElementById('dynamicBg').style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+    }
+    setRandomBackground();
+
+    // Variables globales
+    let currentUserId = null;
+    let currentUserData = null;
+    let roiCandidates = [];
+    let reineCandidates = [];
+    let searchTerm = "";
+    let userVoteListener = null;
+    let roiListener = null;
+    let reineListener = null;
+
+    function normalizeString(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    function matchesSearch(candidate) {
+        if (!searchTerm.trim()) return true;
+        const term = normalizeString(searchTerm.trim());
+        const nameNorm = normalizeString(candidate.n);
+        const idNorm = candidate.id.toString();
+        return nameNorm.includes(term) || idNorm.includes(term);
+    }
+
+    function listenRoiCandidates() {
+        if (roiListener) roiListener.off();
+        const roiRef = db.ref('Roi');
+        roiListener = roiRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            const candidates = [];
+            if (data) {
+                for (const [id, info] of Object.entries(data)) {
+                    if (info && typeof info === 'object') {
+                        candidates.push({
+                            id: id,
+                            n: info.n || "Inconnu",
+                            v: info.v || 0
+                        });
+                    }
+                }
+            }
+            roiCandidates = candidates;
+            renderRoiColumn();
+        });
+    }
+
+    function listenReineCandidates() {
+        if (reineListener) reineListener.off();
+        const reineRef = db.ref('Riene');
+        reineListener = reineRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            const candidates = [];
+            if (data) {
+                for (const [id, info] of Object.entries(data)) {
+                    if (info && typeof info === 'object') {
+                        candidates.push({
+                            id: id,
+                            n: info.n || "Inconnu",
+                            v: info.v || 0
+                        });
+                    }
+                }
+            }
+            reineCandidates = candidates;
+            renderReineColumn();
+        });
+    }
+
+    function listenUserVoteRights() {
+        if (userVoteListener) userVoteListener.off();
+        const userInRoi = db.ref(`Roi/${currentUserId}`);
+        const userInRiene = db.ref(`Riene/${currentUserId}`);
+        
+        const updateUserData = () => {
+            Promise.all([userInRoi.once('value'), userInRiene.once('value')]).then(([roiSnap, reineSnap]) => {
+                let data = roiSnap.val();
+                let isRoi = true;
+                if (!data || typeof data !== 'object') {
+                    data = reineSnap.val();
+                    isRoi = false;
+                }
+                if (data && typeof data === 'object') {
+                    currentUserData = {
+                        n: data.n || "Inconnu",
+                        vg: data.vg !== undefined ? data.vg : 1,
+                        vf: data.vf !== undefined ? data.vf : 1,
+                        v: data.v || 0,
+                        isRoi: isRoi
+                    };
+                } else {
+                    currentUserData = null;
+                }
+                updateUserInterface();
+            });
+        };
+        
+        userInRoi.on('value', updateUserData);
+        userInRiene.on('value', updateUserData);
+        userVoteListener = { off: () => { userInRoi.off(); userInRiene.off(); } };
+        updateUserData();
+    }
+
+    function updateUserInterface() {
+        const userStatusDiv = document.getElementById('userStatus');
+        if (!currentUserData) {
+            userStatusDiv.innerHTML = "❌ Utilisateur non trouvé";
+            return;
+        }
+        const canVoteRoi = currentUserData.vg === 1;
+        const canVoteReine = currentUserData.vf === 1;
+        userStatusDiv.innerHTML = `👤 ${currentUserData.n} &nbsp;|&nbsp; ${canVoteRoi ? '✅ Peut voter pour un roi' : '❌ A déjà voté pour le roi'} &nbsp;|&nbsp; ${canVoteReine ? '✅ Peut voter pour une reine' : '❌ A déjà voté pour la reine'}`;
+        
+        renderRoiColumn();
+        renderReineColumn();
+    }
+
+    function renderRoiColumn() {
+        const container = document.getElementById('roiList');
+        const statusDiv = document.getElementById('roiStatus');
+        
+        if (!currentUserData) {
+            statusDiv.innerHTML = "⚠️ Connectez-vous";
+            container.innerHTML = '<div class="empty-candidate">Non disponible</div>';
+            return;
+        }
+        
+        const canVote = currentUserData.vg === 1;
+        const filtered = roiCandidates.filter(matchesSearch);
+        
+        if (!canVote) {
+            statusDiv.innerHTML = "❌ Vous avez déjà voté pour le roi !";
+            container.innerHTML = '<div class="empty-candidate">Vous ne pouvez plus voter pour cette catégorie</div>';
+            return;
+        }
+        
+        statusDiv.innerHTML = `👑 ${filtered.length} candidat(s) roi`;
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-candidate">Aucun candidat trouvé</div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(candidate => `
+            <div class="candidate-item">
+                <div class="candidate-info">
+                    <span class="candidate-name">${escapeHtml(candidate.n)}</span>
+                    <span class="candidate-id">#${candidate.id}</span>
+                </div>
+                <button class="vote-btn" data-category="roi" data-id="${candidate.id}" data-name="${escapeHtml(candidate.n)}">🗳️ Voter pour lui</button>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.vote-btn[data-category="roi"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                voteForCandidate('roi', id, name);
+            });
+        });
+    }
+
+    function renderReineColumn() {
+        const container = document.getElementById('reineList');
+        const statusDiv = document.getElementById('reineStatus');
+        
+        if (!currentUserData) {
+            statusDiv.innerHTML = "⚠️ Connectez-vous";
+            container.innerHTML = '<div class="empty-candidate">Non disponible</div>';
+            return;
+        }
+        
+        const canVote = currentUserData.vf === 1;
+        const filtered = reineCandidates.filter(matchesSearch);
+        
+        if (!canVote) {
+            statusDiv.innerHTML = "❌ Vous avez déjà voté pour la reine !";
+            container.innerHTML = '<div class="empty-candidate">Vous ne pouvez plus voter pour cette catégorie</div>';
+            return;
+        }
+        
+        statusDiv.innerHTML = `👸 ${filtered.length} candidate(s) reine`;
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-candidate">Aucune candidate trouvée</div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(candidate => `
+            <div class="candidate-item">
+                <div class="candidate-info">
+                    <span class="candidate-name">${escapeHtml(candidate.n)}</span>
+                    <span class="candidate-id">#${candidate.id}</span>
+                </div>
+                <button class="vote-btn" data-category="reine" data-id="${candidate.id}" data-name="${escapeHtml(candidate.n)}">🗳️ Voter pour elle</button>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.vote-btn[data-category="reine"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                voteForCandidate('reine', id, name);
+            });
+        });
+    }
+
+    async function voteForCandidate(category, candidateId, candidateName) {
+        if (!currentUserData) {
+            showStatus("❌ Utilisateur non connecté");
+            return;
+        }
+        
+        if (category === 'roi' && currentUserData.vg !== 1) {
+            showStatus("❌ Vous avez déjà voté pour le roi");
+            return;
+        }
+        if (category === 'reine' && currentUserData.vf !== 1) {
+            showStatus("❌ Vous avez déjà voté pour la reine");
+            return;
+        }
+        
+        if (candidateId === currentUserId) {
+            showStatus("❌ Vous ne pouvez pas voter pour vous-même");
+            return;
+        }
+        
+        showStatus(`⏳ Vote en cours pour ${candidateName}...`);
+        
+        try {
+            const updates = {};
+            
+            const candidatePath = category === 'roi' ? `Roi/${candidateId}/v` : `Riene/${candidateId}/v`;
+            const candidateRef = db.ref(candidatePath);
+            const candidateSnap = await candidateRef.once('value');
+            const currentVotes = candidateSnap.val() || 0;
+            updates[candidatePath] = currentVotes + 1;
+            
+            const userPath = currentUserData.isRoi ? `Roi/${currentUserId}` : `Riene/${currentUserId}`;
+            if (category === 'roi') {
+                updates[`${userPath}/vg`] = 0;
+            } else {
+                updates[`${userPath}/vf`] = 0;
+            }
+            
+            await db.ref().update(updates);
+            
+            if (category === 'roi') {
+                currentUserData.vg = 0;
+                const candidate = roiCandidates.find(c => c.id === candidateId);
+                if (candidate) candidate.v += 1;
+            } else {
+                currentUserData.vf = 0;
+                const candidate = reineCandidates.find(c => c.id === candidateId);
+                if (candidate) candidate.v += 1;
+            }
+            
+            updateUserInterface();
+            renderRoiColumn();
+            renderReineColumn();
+            showStatus(`✅ Vote pour ${candidateName} enregistré !`);
+            
+        } catch (error) {
+            console.error("Erreur vote:", error);
+            showStatus(`❌ Erreur: ${error.message}`);
+        }
+    }
+
+    async function loginUser(userId) {
+        const roiSnap = await db.ref(`Roi/${userId}`).once('value');
+        const reineSnap = await db.ref(`Riene/${userId}`).once('value');
+        
+        const roiData = roiSnap.val();
+        const reineData = reineSnap.val();
+        
+        if ((!roiData || typeof roiData !== 'object') && (!reineData || typeof reineData !== 'object')) {
+            document.getElementById('loginError').innerText = "❌ ID non trouvé dans la liste des candidats";
+            return false;
+        }
+        
+        currentUserId = userId;
+        
+        if (userVoteListener) userVoteListener.off();
+        if (roiListener) roiListener.off();
+        if (reineListener) reineListener.off();
+        
+        listenRoiCandidates();
+        listenReineCandidates();
+        listenUserVoteRights();
+        
+        return true;
+    }
+
+    let statusTimeout;
+    function showStatus(msg) {
+        let statusDiv = document.getElementById('statusMessage');
+        if (!statusDiv) {
+            const newDiv = document.createElement('div');
+            newDiv.id = 'statusMessage';
+            newDiv.className = 'status-msg';
+            const votingSection = document.getElementById('votingSection');
+            if (votingSection) votingSection.prepend(newDiv);
+            statusDiv = newDiv;
+        }
+        statusDiv.innerText = msg;
+        if (statusTimeout) clearTimeout(statusTimeout);
+        statusTimeout = setTimeout(() => {
+            if (statusDiv.innerText === msg) statusDiv.innerText = '';
+        }, 3000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+
+    function setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            renderRoiColumn();
+            renderReineColumn();
+        });
+    }
+
+    window.onload = () => {
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const uid = document.getElementById('userIdInput').value.trim();
+            if (!uid || uid.length !== 4 || isNaN(uid)) {
+                document.getElementById('loginError').innerText = "Veuillez entrer un ID à 4 chiffres";
+                return;
+            }
+            if (await loginUser(uid)) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('votingSection').style.display = 'block';
+                setupSearch();
+            }
+        });
+        
+        document.getElementById('userIdInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+        });
+    };
+</script>
+</body>
+</html>
