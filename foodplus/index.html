@@ -7,8 +7,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <!-- QR Code (html5-qrcode plus stable) -->
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- QR Code -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -110,8 +110,29 @@
             transition: 0.1s;
         }
         #loginBtn:active { transform: scale(0.96); }
+        
+        /* Lien d'aide */
+        .help-link {
+            display: inline-block;
+            margin-top: 1.2rem;
+            background: rgba(244, 162, 97, 0.15);
+            border: 1px solid #F4A261;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: #F4A261;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .help-link:active {
+            transform: scale(0.96);
+            background: rgba(244, 162, 97, 0.3);
+        }
+        .help-link span {
+            margin-right: 6px;
+        }
 
-        /* Navigation MacDo+ : grandes tuiles horizontales */
+        /* Navigation MacDo+ */
         .categories-scroll {
             overflow-x: auto;
             display: flex;
@@ -346,6 +367,10 @@
                 <button id="loginBtn">VALIDER</button>
             </div>
             <div id="loginError" class="status-msg" style="color:#E76F51;"></div>
+            <!-- LIEN D'AIDE VISIBLE -->
+            <a href="./how-it-work.html" class="help-link">
+                <span>❓</span> Comment utiliser Coachella Food+ ?
+            </a>
         </div>
     </div>
 
@@ -399,7 +424,7 @@
     let cart = {};
     let currentCategory = "cocktail";
     let userQuotaListener = null;
-    let stockListeners = new Map(); // productId -> ref pour écouter les changements de stock
+    let stockListeners = new Map();
 
     // STOCKAGE LOCAL TICKET
     const TICKET_STORAGE_KEY = "coachella_current_ticket";
@@ -408,7 +433,7 @@
     // IMAGE BASE URL
     const IMAGE_BASE = "https://honore-romane.fr/foodplus/produit/";
 
-    // ICONES catégories (corrigées)
+    // ICONES catégories
     const CATEGORY_ICONS = {
         cocktail: "https://cdn-icons-png.flaticon.com/512/1046/1046784.png",
         boissons: "https://cdn-icons-png.flaticon.com/512/2553/2553691.png",
@@ -451,15 +476,13 @@
                 let stock = (typeof val === 'object') ? (val.stock ?? val) : val;
                 if (stock === null) stock = 0;
                 product.currentStock = stock;
-                // Vérifier si le panier dépasse le nouveau stock
                 syncCartWithStock(product.ID, stock);
-                renderProductsGrid(); // refresh visuel
+                renderProductsGrid();
             });
             stockListeners.set(product.ID, { ref: stockRef, callback });
         }
     }
 
-    // Vérifier et ajuster le panier si stock diminué
     function syncCartWithStock(productId, newStock) {
         const currentQty = cart[productId] || 0;
         if (currentQty > newStock) {
@@ -476,7 +499,6 @@
         }
     }
 
-    // Vérifier utilisateur existant
     async function loginUser(userId) {
         const snapshot = await db.ref(`U/${userId}`).once('value');
         const data = snapshot.val();
@@ -502,7 +524,6 @@
                 updateRemainingUI();
                 renderCartUI();
                 renderProductsGrid();
-                // Vérifier les limites catégories après changement
                 syncCartWithUserLimits();
             }
         });
@@ -518,7 +539,6 @@
         }
     }
 
-    // Vérifier si panier dépasse les limites utilisateur (après changement)
     function syncCartWithUserLimits() {
         let modified = false;
         let catTotals = { cocktails: 0, boissons: 0, nourriture: 0 };
@@ -531,7 +551,6 @@
         if (catTotals.nourriture > userRemaining.nourriture) modified = true;
         
         if (modified) {
-            // Réduire intelligemment : on vide le panier si trop (simplifié)
             cart = {};
             renderCartUI();
             renderProductsGrid();
@@ -563,7 +582,6 @@
         const product = productMap.get(productId);
         if(!product) return;
         
-        // Vérifier stock actuel (depuis Firebase en temps réel)
         const currentStock = product.currentStock !== undefined ? product.currentStock : await getProductStock(productId);
         const currentQty = cart[productId] || 0;
         
@@ -681,7 +699,6 @@
         if(Object.keys(cart).length === 0) { showStatus("Panier vide"); return; }
         showStatus("Vérification en cours...");
         
-        // Vérifications finales complètes
         let totalByCat = { cocktails: 0, boissons: 0, nourriture: 0 };
         for(let [pid, qty] of Object.entries(cart)) {
             const prod = productMap.get(pid);
@@ -732,8 +749,7 @@
         qrContainer.innerHTML = "";
         
         const ticketData = JSON.stringify({ ticketId, items, userId: currentUserId });
-        // Utilisation de la librairie html5-qrcode pour générer QR Code (plus fiable)
-        const qrcode = new QRCode(qrContainer, {
+        new QRCode(qrContainer, {
             text: ticketData,
             width: 200,
             height: 200,
@@ -783,7 +799,6 @@
     function resetToLogin() {
         if(activeTicketCheckInterval) clearInterval(activeTicketCheckInterval);
         if(userQuotaListener) userQuotaListener.off();
-        // Nettoyer les listeners de stock
         for(let [pid, {ref, callback}] of stockListeners.entries()) {
             ref.off('value', callback);
         }
@@ -798,7 +813,6 @@
         document.getElementById('loginError').innerText = '';
     }
 
-    // Navigation MacDo+
     function buildMacDoNav() {
         const nav = document.getElementById('categoriesNav');
         const cats = [
