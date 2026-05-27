@@ -1,7 +1,7 @@
 {
   "cocktail": [
-    { "name": "Sex On The Beach", "link": "./sotb.svg", "ID": "1" },
-    { "name": "Mojito", "link": "./mojito.svg", "ID": "2" }
+    { "name": "Sex On The Beach", "link": "./sotb.jpeg", "ID": "1" },
+    { "name": "Mojito", "link": "./mojito.jpeg", "ID": "2" }
   ],
   "boissons": [
     { "name": "Ice Tea", "link": "./icetea.svg", "ID": "3" },
