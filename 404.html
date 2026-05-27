@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Coachella Flow · 404 - Page introuvable</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            color: #f5efe8;
+            min-height: 100vh;
+            position: relative;
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
+        }
+        
+        .dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            filter: brightness(0.35) blur(6px);
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .overlay-dark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 2rem 1rem 5rem;
+            position: relative;
+            z-index: 3;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .festival-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #FFD166, #F4A261, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        
+        .logo span {
+            font-weight: 300;
+            font-size: 1.8rem;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #f5e2b0;
+        }
+        
+        .subtitle {
+            font-size: 0.8rem;
+            color: #F4A261;
+            margin-top: 8px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        /* 404 Card */
+        .error-card {
+            background: rgba(18, 15, 32, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 2.5rem 1.8rem;
+            text-align: center;
+            border: 1px solid rgba(244, 162, 97, 0.4);
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+            margin: 1rem 0;
+        }
+
+        .error-code {
+            font-size: 7rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD166, #E76F51);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 8px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(231, 111, 81, 0.3);
+        }
+
+        .error-graphic {
+            font-size: 4rem;
+            margin: 1rem 0;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+        }
+
+        .error-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #FFEFDA;
+            margin-bottom: 0.8rem;
+        }
+
+        .error-message {
+            color: #d6c5aa;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #E76F51;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.9rem 1.8rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        .btn-secondary {
+            background: rgba(244, 162, 97, 0.2);
+            backdrop-filter: blur(4px);
+            border: 1.5px solid #F4A261;
+            color: #F4A261;
+            font-weight: 600;
+            padding: 0.9rem 1.8rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.96);
+            background: rgba(244, 162, 97, 0.35);
+        }
+
+        /* Suggestions musicales */
+        .suggestions-section {
+            margin-top: 2.5rem;
+            text-align: center;
+        }
+
+        .suggestions-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #F4A261;
+            margin-bottom: 1rem;
+        }
+
+        .suggestion-tracks {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .suggestion-track {
+            background: rgba(18, 15, 32, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.8rem;
+            color: #FFE8D6;
+            border: 1px solid rgba(244, 162, 97, 0.3);
+            transition: 0.2s;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .suggestion-track:hover {
+            background: #E76F51cc;
+            border-color: #E76F51;
+            transform: translateY(-2px);
+        }
+
+        .suggestion-track:active {
+            transform: scale(0.96);
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #cabce6;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #352d50;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        @media (max-width: 550px) {
+            .container { padding: 1.5rem 1rem 4rem; }
+            .error-card { padding: 1.8rem 1.2rem; }
+            .error-code { font-size: 4.5rem; letter-spacing: 4px; }
+            .error-title { font-size: 1.3rem; }
+            .btn-primary, .btn-secondary { padding: 0.7rem 1.4rem; font-size: 0.85rem; }
+            .suggestion-track { padding: 0.4rem 1rem; font-size: 0.7rem; }
+        }
+
+        /* Animation douce */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .error-graphic {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+<div id="dynamicBg" class="dynamic-bg"></div>
+<div class="overlay-dark"></div>
+
+<div class="container">
+    <div class="festival-header">
+        <div class="logo">Coachella<span> Bale2026</span></div>
+        <div class="subtitle">Il semblerait que cette page n'existe pas...</div>
+    </div>
+
+    <div class="error-card">
+        <div class="error-code">404</div>
+        <div class="error-title">⛔ Page introuvable</div>
+        <div class="error-message">
+            Aller sur les pages :
+        <div class="action-buttons">
+            <a href="index.html" class="btn-primary">🎧 CoachellaFlow</a>
+            <a href="add.html" class="btn-primary">👑 Roi et Riene</a>
+        </div>
+    </div>
+    <div class="footer-note">
+        <span>creation de MAIRE Anael pour la MDL2026, tout droit reservé</span>
+    </div>
+</div>
+
+<script>
+    // === FONDS D'ÉCRAN DYNAMIQUES (même sélection que l'original) ===
+    const backgrounds = [
+        "https://media.vogue.fr/photos/5c361493bc36eb0e4a6d0a92/2:3/w_2560%2Cc_limit/coachella_9787.jpeg?lang=eng",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=2070&auto=format",
+        "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format"
+    ];
+    
+    function setRandomBackground() {
+        const randomIndex = Math.floor(Math.random() * backgrounds.length);
+        document.getElementById('dynamicBg').style.backgroundImage = `url('${backgrounds[randomIndex]}')`;
+    }
+    setRandomBackground();
+    
+    // === REDIRECTION VERS LA PAGE PRINCIPALE AVEC RECHERCHE PRÉ-REMPLIE ===
+    // Pour les suggestions : on redirige vers index.html avec un paramètre de recherche dans l'URL
+    // Comme l'index.html n'a pas de mécanisme de lecture de paramètre URL pour la recherche,
+    // on utilise sessionStorage pour passer la requête et la page d'accueil pourra le lire.
+    // Mais on va faire simple : redirection classique vers index.html + stockage temporaire.
+    // Au cas où la page d'accueil ne lit pas sessionStorage, l'utilisateur atterrit simplement sur la playlist.
+    // Pour une meilleure expérience, on simule un clic sur la recherche après redirection ?
+    // Ici on redirige proprement et on pourra ajouter un event sur load si besoin.
+    // Mais on fait au plus simple : les suggestions redirigent vers l'accueil avec un hash ou paramètre.
+    // Pour rester cohérent avec l'interface utilisateur originale, on va rediriger vers index.html 
+    // et on utilisera localStorage pour pré-remplir la recherche (optionnel)
+    
+    document.querySelectorAll('.suggestion-track').forEach(el => {
+        el.addEventListener('click', () => {
+            const query = el.getAttribute('data-query');
+            if (query) {
+                // On stocke la recherche pour que la page d'accueil l'utilise si elle veut
+                sessionStorage.setItem('coachella_search_suggestion', query);
+                // Redirection vers l'index
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    
+    // Petit effet visuel : changer dynamiquement le fond toutes les 20 sec (ambiance)
+    let bgInterval = setInterval(() => {
+        setRandomBackground();
+    }, 20000);
+    
+    // Cleanup optionnel si jamais la page est déchargée
+    window.addEventListener('beforeunload', () => {
+        if (bgInterval) clearInterval(bgInterval);
+    });
+</script>
+</body>
+</html>
