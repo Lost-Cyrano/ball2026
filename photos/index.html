@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>Coachella Photos · Souvenirs MDL 2026</title>
+    <title>Coachella Photos · MDL 2026</title>
     <style>
         * {
             margin: 0;
@@ -18,7 +18,7 @@
             background: radial-gradient(circle at 20% 30%, #0a0a1a, #020106);
         }
         
-        /* Fond d'écran dynamique comme sur la borne Coachella Food+ */
+        /* Fond d'écran dynamique comme sur les autres pages */
         .dynamic-bg {
             position: fixed;
             top: 0;
@@ -43,7 +43,7 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 1.2rem 1rem 4rem;
+            padding: 1.2rem 1rem 3rem;
             position: relative;
             z-index: 3;
         }
@@ -87,23 +87,21 @@
             padding: 0.8rem 1.5rem;
             border: 1px solid rgba(244, 162, 97, 0.4);
         }
-        .photo-counter {
+        .photo-count {
             font-size: 0.9rem;
-            background: rgba(0,0,0,0.5);
-            padding: 0.4rem 1rem;
-            border-radius: 40px;
+            color: #FFD6B0;
         }
         .download-all-btn {
             background: #E76F51;
             border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 60px;
-            font-weight: bold;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
             font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.2s;
             color: white;
-            display: inline-flex;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
             align-items: center;
             gap: 8px;
         }
@@ -113,22 +111,24 @@
         .refresh-btn {
             background: rgba(244, 162, 97, 0.2);
             border: 1px solid #F4A261;
-            padding: 0.6rem 1.2rem;
-            border-radius: 60px;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #F4A261;
             cursor: pointer;
-            transition: 0.2s;
-            color: #FFD6B0;
+            transition: 0.1s;
         }
         .refresh-btn:active {
             transform: scale(0.96);
         }
 
-        /* Grille photos */
+        /* Grille des photos (responsive) */
         .photos-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin: 1.5rem 0;
+            margin-top: 1rem;
         }
         .photo-card {
             background: rgba(18, 15, 32, 0.85);
@@ -140,13 +140,13 @@
             cursor: pointer;
         }
         .photo-card:hover {
-            transform: translateY(-5px);
-            border-color: #FFD166;
+            transform: translateY(-4px);
+            border-color: #F4A261;
         }
         .photo-card:active {
             transform: scale(0.98);
         }
-        .photo-img-container {
+        .photo-img-wrapper {
             position: relative;
             width: 100%;
             aspect-ratio: 1 / 1;
@@ -162,71 +162,39 @@
         .photo-card:hover .photo-img {
             transform: scale(1.05);
         }
-        .photo-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-            padding: 1rem 0.8rem 0.5rem;
-            opacity: 0;
-            transition: opacity 0.2s;
+        .photo-info {
+            padding: 0.8rem 1rem;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-        }
-        .photo-card:hover .photo-overlay {
-            opacity: 1;
-        }
-        .download-icon {
-            background: #E76F51;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: 0.1s;
-            font-size: 1.2rem;
-        }
-        .download-icon:active {
-            transform: scale(0.9);
+            gap: 0.5rem;
         }
         .photo-name {
-            font-size: 0.7rem;
-            background: rgba(0,0,0,0.6);
-            padding: 0.2rem 0.6rem;
-            border-radius: 20px;
-            max-width: 180px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #FFD6B0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            flex: 1;
         }
-        .photo-card-footer {
-            padding: 0.7rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.7rem;
-            color: #FFD6B0;
-        }
-        .single-download-btn {
-            background: none;
-            border: 1px solid #F4A261;
+        .download-btn {
+            background: rgba(231, 111, 81, 0.8);
+            border: none;
             border-radius: 30px;
-            padding: 0.2rem 0.7rem;
+            padding: 0.3rem 0.8rem;
             font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
             cursor: pointer;
-            color: #FFD6B0;
             transition: 0.1s;
         }
-        .single-download-btn:active {
+        .download-btn:active {
+            transform: scale(0.94);
             background: #E76F51;
-            color: white;
         }
 
-        /* Modal visionneuse */
+        /* Modal lightbox */
         .modal {
             display: none;
             position: fixed;
@@ -235,6 +203,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -249,47 +218,55 @@
             position: relative;
         }
         .modal-img {
+            width: auto;
             max-width: 100%;
             max-height: 85vh;
             border-radius: 24px;
             box-shadow: 0 0 40px rgba(0,0,0,0.6);
             border: 2px solid #F4A261;
         }
-        .modal-close {
-            position: absolute;
-            top: -40px;
-            right: 0;
-            background: #E76F51;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: 0.1s;
-        }
-        .modal-close:active {
-            transform: scale(0.9);
-        }
         .modal-download {
             position: absolute;
             bottom: -50px;
             left: 50%;
             transform: translateX(-50%);
-            background: #2a8e6e;
-            padding: 0.6rem 1.8rem;
-            border-radius: 60px;
+            background: #E76F51;
+            padding: 0.6rem 1.5rem;
+            border-radius: 40px;
             font-weight: bold;
+            border: none;
+            color: white;
             cursor: pointer;
+            font-size: 1rem;
             white-space: nowrap;
         }
-        .modal-download:active {
-            transform: translateX(-50%) scale(0.96);
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #FFD166;
+        }
+        @media (max-width: 640px) {
+            .modal-download {
+                bottom: -45px;
+                font-size: 0.8rem;
+                padding: 0.4rem 1rem;
+            }
+            .modal-close {
+                top: -35px;
+            }
         }
 
-        /* États de chargement */
+        /* Loading / Empty states */
         .loading-spinner {
             text-align: center;
             padding: 3rem;
@@ -298,30 +275,31 @@
         }
         .empty-state {
             text-align: center;
-            padding: 4rem;
-            background: rgba(18, 15, 32, 0.7);
-            border-radius: 48px;
+            padding: 3rem;
             color: #FFD6B0;
+            font-style: italic;
+            background: rgba(18, 15, 32, 0.6);
+            border-radius: 48px;
         }
-        .toast-msg {
+        .toast-animation {
             position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 20%;
+            left: 20%;
+            right: 20%;
             background: #2a8e6e;
             color: white;
-            padding: 0.8rem 1.8rem;
+            text-align: center;
+            padding: 0.8rem;
             border-radius: 60px;
             font-weight: bold;
-            z-index: 1100;
-            animation: fadeOutUp 2s ease forwards;
-            pointer-events: none;
-            white-space: nowrap;
+            z-index: 200;
+            animation: fadeOutUp 1s ease forwards;
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
         }
         @keyframes fadeOutUp {
-            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            0% { opacity: 1; transform: translateY(0); }
             70% { opacity: 1; }
-            100% { opacity: 0; transform: translateX(-50%) translateY(-40px); display: none; }
+            100% { opacity: 0; transform: translateY(-40px); display: none; }
         }
         .footer-note {
             text-align: center;
@@ -330,23 +308,6 @@
             margin-top: 2.5rem;
             border-top: 1px dashed rgba(244,162,97,0.3);
             padding-top: 1.5rem;
-        }
-        @media (max-width: 680px) {
-            .photos-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 1rem;
-            }
-            .toolbar {
-                flex-direction: column;
-                align-items: stretch;
-                border-radius: 32px;
-            }
-            .download-all-btn, .refresh-btn {
-                justify-content: center;
-            }
-            .photo-name {
-                max-width: 120px;
-            }
         }
     </style>
 </head>
@@ -357,371 +318,304 @@
 <div class="container">
     <div class="festival-header">
         <div class="logo">Coachella<span>Photos</span></div>
-        <div class="sub">📸 Les plus beaux moments du bal · Téléchargez vos souvenirs</div>
+        <div class="sub">📸 Les meilleurs moments du festival · Téléchargez vos souvenirs</div>
     </div>
 
     <div class="toolbar">
-        <div class="photo-counter" id="photoCounter">📷 Chargement...</div>
-        <div style="display: flex; gap: 10px;">
-            <button class="refresh-btn" id="refreshBtn">🔄 Rafraîchir</button>
-            <button class="download-all-btn" id="downloadAllBtn">⬇️ Tout télécharger (ZIP)</button>
+        <div class="photo-count" id="photoCount">📷 0 photos disponibles</div>
+        <div style="display: flex; gap: 0.8rem;">
+            <button id="refreshBtn" class="refresh-btn">⟳ Rafraîchir</button>
+            <button id="downloadAllBtn" class="download-all-btn">📥 Tout télécharger (ZIP)</button>
         </div>
     </div>
 
     <div id="photosGridContainer" class="photos-grid">
-        <div class="loading-spinner">🎵 Chargement des photos du bal...</div>
+        <div class="loading-spinner">🎞️ Chargement des photos du backstage...</div>
     </div>
 
     <div class="footer-note">
-        création de MAIRE Anael pour la MDL2026, tout droit réservé<br>
-        🎞️ Cliquez sur une photo pour l'agrandir · Téléchargement individuel ou par lot
+        création de MAIRE Anael pour la MDL2026, tout droit réservé
     </div>
 </div>
 
-<!-- Modal de visionneuse -->
-<div id="photoModal" class="modal">
+<!-- Modal lightbox -->
+<div id="lightboxModal" class="modal">
     <div class="modal-content">
-        <div class="modal-close" id="modalCloseBtn">✕</div>
-        <img id="modalImage" class="modal-img" alt="Aperçu">
-        <div class="modal-download" id="modalDownloadBtn">⬇️ Télécharger cette photo</div>
+        <span class="modal-close" id="modalCloseBtn">✕</span>
+        <img id="modalImage" class="modal-img" src="" alt="Aperçu">
+        <button id="modalDownloadBtn" class="modal-download">📸 Télécharger cette photo</button>
     </div>
 </div>
 
 <script>
-    // Configuration des sources : dépôt GitHub (ou hébergement static)
-    // Les photos sont stockées dans "/photos/images/" et l'index des photos est "/photos/index.html"
-    // On va parser l'index HTML distant pour extraire la liste des fichiers images.
-    // Alternative: on peut aussi faire une approche avec un fichier JSON list.json, mais on utilise l'index HTML comme demandé.
+    // CONFIGURATION : dossier des images (chemin relatif depuis cette page)
+    // Toutes les photos sont stockées dans "./images/"
+    const IMAGES_PATH = "./images/";
     
-    const PHOTOS_BASE_URL = "https://honore-romane.fr/foodplus/photos/";   // Répertoire racine des photos (index)
-    const IMAGES_DIR = "images/";
-    const FULL_IMAGES_URL = PHOTOS_BASE_URL + IMAGES_DIR;
+    // Liste des extensions d'image supportées
+    const SUPPORTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
     
-    let photosList = [];   // [{ name: "image.jpg", url: "https://.../photos/images/image.jpg" }]
+    // État global
+    let photoList = [];      // [{ filename, fullUrl, extension }]
     let isLoading = false;
     
     // Éléments DOM
-    const gridContainer = document.getElementById('photosGridContainer');
-    const photoCounterSpan = document.getElementById('photoCounter');
+    const photosGrid = document.getElementById('photosGridContainer');
+    const photoCountSpan = document.getElementById('photoCount');
     const refreshBtn = document.getElementById('refreshBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
-    const modal = document.getElementById('photoModal');
+    const lightboxModal = document.getElementById('lightboxModal');
     const modalImage = document.getElementById('modalImage');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
     const modalDownloadBtn = document.getElementById('modalDownloadBtn');
     
-    let currentModalPhotoUrl = '';
-    let currentModalPhotoName = '';
+    // Variables pour la lightbox courante
+    let currentPhotoFilename = null;
+    let currentPhotoUrl = null;
     
-    // Fonction pour afficher un toast temporaire
-    function showToast(message, isError = false) {
+    // ---------- FONCTIONS UTILITAIRES ----------
+    function showToast(message) {
+        const existingToast = document.querySelector('.toast-animation');
+        if(existingToast) existingToast.remove();
         const toast = document.createElement('div');
-        toast.className = 'toast-msg';
-        toast.textContent = message;
-        if (isError) toast.style.backgroundColor = '#E76F51';
-        else toast.style.backgroundColor = '#2a8e6e';
+        toast.className = 'toast-animation';
+        toast.innerText = message;
         document.body.appendChild(toast);
         setTimeout(() => {
-            toast.remove();
+            if(toast.parentNode) toast.remove();
         }, 2500);
     }
     
-    // Extraire les noms de fichiers images depuis le contenu HTML de /photos/index.html
-    async function fetchPhotosFromIndex() {
-        try {
-            const indexUrl = PHOTOS_BASE_URL + "index.html";
-            const response = await fetch(indexUrl);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const htmlText = await response.text();
-            
-            // Parser le HTML pour trouver toutes les balises <a> ou <img> qui pointent vers des fichiers images
-            // Méthode robuste: chercher les href des liens vers les fichiers dans /photos/images/
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            
-            // Chercher tous les liens <a> qui contiennent .jpg, .jpeg, .png, .gif, .webp
-            const links = doc.querySelectorAll('a');
-            const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp)$/i;
-            const imageFiles = [];
-            
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                if (href && imageExtensions.test(href)) {
-                    // Vérifier si le fichier est dans le dossier images/
-                    if (href.includes('images/') || href.startsWith('images/')) {
-                        let fileName = href.split('/').pop();
-                        if (fileName && imageExtensions.test(fileName)) {
-                            imageFiles.push(fileName);
-                        }
-                    } else if (!href.includes('/') && imageExtensions.test(href)) {
-                        // fichier à la racine du dossier photos, on l'inclut aussi (mais normalement dossier images)
-                        imageFiles.push(href);
-                    }
-                }
+    // Téléchargement d'une image via anchor (force download)
+    function downloadImage(url, filename) {
+        fetch(url)
+            .then(response => response.blob())
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                showToast(`✅ Téléchargement : ${filename}`);
+            })
+            .catch(err => {
+                console.error("Erreur téléchargement:", err);
+                // Fallback : tentative en ouvrant dans un nouvel onglet (pas idéal)
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast(`⚠️ Téléchargement lancé (méthode alternative)`);
             });
-            
-            // Fallback: chercher aussi les images dans les balises <img src="..."> (au cas où)
-            const imgs = doc.querySelectorAll('img');
-            imgs.forEach(img => {
-                let src = img.getAttribute('src');
-                if (src && imageExtensions.test(src)) {
-                    let fileName = src.split('/').pop();
-                    if (fileName && !imageFiles.includes(fileName)) {
-                        imageFiles.push(fileName);
-                    }
-                }
-            });
-            
-            // Supprimer les doublons
-            const uniqueFiles = [...new Set(imageFiles)];
-            if (uniqueFiles.length === 0) {
-                // Fallback : tentative de récupération d'une liste via requête sur le dossier (si généré par serveur)
-                // mais on ne peut pas lister un dossier sans API. On va utiliser des noms génériques ? Non.
-                // On tente une autre approche : fetch un fichier list.json s'il existe
-                console.warn("Aucune image trouvée dans index.html, tentative sur list.json");
-                return await fallbackFetchListJson();
-            }
-            
-            // Construire les objets photos
-            photosList = uniqueFiles.map(fileName => ({
-                name: fileName,
-                url: FULL_IMAGES_URL + fileName
-            }));
-            
-            // Trier par ordre alphabétique
-            photosList.sort((a, b) => a.name.localeCompare(b.name));
-            return true;
-        } catch (error) {
-            console.error("Erreur lors du parsing de l'index:", error);
-            return false;
-        }
     }
     
-    // Fallback: essayer de charger un fichier list.json (pratique si on veut un backoffice)
-    async function fallbackFetchListJson() {
+    async function fetchPhotoListFromManifest() {
         try {
-            const listJsonUrl = PHOTOS_BASE_URL + "list.json";
-            const resp = await fetch(listJsonUrl);
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data && Array.isArray(data.images)) {
-                    photosList = data.images.map(img => ({
-                        name: img.filename || img,
-                        url: FULL_IMAGES_URL + (img.filename || img)
-                    }));
-                    return true;
+            // Tente de charger le fichier manifest (list.json ou photos.json)
+            const manifestUrl = `${IMAGES_PATH}photos.json`;
+            const response = await fetch(manifestUrl, { cache: 'no-cache' });
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    return data.filter(name => {
+                        const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
+                        return SUPPORTED_EXTENSIONS.includes(ext);
+                    });
+                } else if (data.files && Array.isArray(data.files)) {
+                    return data.files.filter(name => {
+                        const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
+                        return SUPPORTED_EXTENSIONS.includes(ext);
+                    });
                 }
+            }
+        } catch(e) { console.warn("Pas de manifest photos.json", e); }
+        
+        // fallback: on tente de charger un fichier "list.txt" contenant les noms ligne par ligne
+        try {
+            const txtUrl = `${IMAGES_PATH}list.txt`;
+            const txtResp = await fetch(txtUrl);
+            if(txtResp.ok) {
+                const text = await txtResp.text();
+                const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+                return lines.filter(name => {
+                    const ext = name.substring(name.lastIndexOf('.')).toLowerCase();
+                    return SUPPORTED_EXTENSIONS.includes(ext);
+                });
             }
         } catch(e) {}
         
-        // Dernier recours : images pré-définies de démonstration (pour que l'interface ne soit pas vide)
-        // Mais dans un vrai contexte, on affiche un message.
-        photosList = [];
-        return false;
+        console.warn("Aucun fichier de listing (photos.json ou list.txt) trouvé dans ./images/");
+        return [];
     }
     
-    // Télécharger une image individuelle
-    async function downloadPhoto(url, fileName) {
+    // Charger et afficher les photos
+    async function loadPhotos() {
+        if(isLoading) return;
+        isLoading = true;
+        photosGrid.innerHTML = `<div class="loading-spinner">📸 Recherche des photos dans ./images/ ...</div>`;
+        
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Téléchargement échoué");
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-            showToast(`✅ ${fileName} téléchargé`);
-        } catch (err) {
-            console.error(err);
-            showToast(`❌ Erreur: ${fileName}`, true);
-        }
-    }
-    
-    // Générer un ZIP côté client avec JSZip (chargé dynamiquement)
-    async function downloadAllAsZip() {
-        if (!photosList.length) {
-            showToast("Aucune photo à télécharger", true);
-            return;
-        }
-        
-        // Afficher un toast de préparation
-        showToast("📦 Préparation du zip... (patientez)");
-        
-        // Charger la bibliothèque JSZip depuis CDN si pas déjà présente
-        if (typeof JSZip === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-        
-        const zip = new JSZip();
-        let successCount = 0;
-        let failCount = 0;
-        
-        // Télécharger toutes les images en parallèle (limitées à 5 simultanées pour éviter saturation)
-        const downloadPromises = photosList.map(async (photo, idx) => {
-            try {
-                const response = await fetch(photo.url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const blob = await response.blob();
-                // Nettoyer le nom des caractères spéciaux
-                let safeName = photo.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-                zip.file(safeName, blob);
-                successCount++;
-                // petite mise à jour toast
-                if ((idx + 1) % 5 === 0 || idx === photosList.length - 1) {
-                    showToast(`📸 Ajout ${idx+1}/${photosList.length}`, false);
-                }
-            } catch (err) {
-                console.warn(`Échec ${photo.name}`, err);
-                failCount++;
+            const filenames = await fetchPhotoListFromManifest();
+            if(!filenames || filenames.length === 0) {
+                photosGrid.innerHTML = `
+                    <div class="empty-state">
+                        🖼️ Aucune photo trouvée dans le dossier "./images/"<br><br>
+                        💡 Astuce : Créez un fichier <strong>photos.json</strong> (ou list.txt) dans le dossier images<br>
+                        Format JSON: ["concert1.jpg", "backstage.png", "soiree.webp"]<br>
+                        🎯 Placez vos photos et ce fichier dans le dossier ./images/
+                    </div>
+                `;
+                photoCountSpan.innerText = `📷 0 photo disponible`;
+                isLoading = false;
+                return;
             }
-        });
-        
-        await Promise.allSettled(downloadPromises);
-        
-        if (successCount === 0) {
-            showToast("Aucune photo n'a pu être chargée", true);
-            return;
+            
+            // Construire la liste des photos
+            photoList = filenames.map(filename => ({
+                filename: filename,
+                fullUrl: `${IMAGES_PATH}${encodeURIComponent(filename)}`,
+                extension: filename.substring(filename.lastIndexOf('.')).toLowerCase()
+            }));
+            
+            photoCountSpan.innerText = `📷 ${photoList.length} photo${photoList.length > 1 ? 's' : ''}`;
+            renderPhotoGrid();
+        } catch(err) {
+            console.error(err);
+            photosGrid.innerHTML = `<div class="empty-state">⚠️ Erreur lors du chargement des photos. Vérifiez la console.</div>`;
+        } finally {
+            isLoading = false;
         }
-        
-        // Générer le fichier zip
-        const content = await zip.generateAsync({ type: "blob" });
-        const zipUrl = URL.createObjectURL(content);
-        const a = document.createElement('a');
-        a.href = zipUrl;
-        a.download = `coachella_photos_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(zipUrl);
-        showToast(`🎉 Zip prêt (${successCount} photos)${failCount ? `, ${failCount} ignorées` : ''}`);
     }
     
-    // Afficher la grille des photos
-    function renderGallery() {
-        if (!photosList.length) {
-            gridContainer.innerHTML = `<div class="empty-state">📭 Aucune photo trouvée pour le moment.<br>Les souvenirs du bal seront bientôt disponibles !</div>`;
-            photoCounterSpan.innerHTML = `📷 0 photo`;
+    function renderPhotoGrid() {
+        if(!photoList.length) {
+            photosGrid.innerHTML = `<div class="empty-state">✨ Aucune image à afficher pour le moment. Ajoutez des photos dans ./images/ et un fichier photos.json</div>`;
             return;
         }
         
         let html = '';
-        for (let i = 0; i < photosList.length; i++) {
-            const photo = photosList[i];
-            const displayName = photo.name.length > 30 ? photo.name.slice(0, 27) + '...' : photo.name;
+        for(let i = 0; i < photoList.length; i++) {
+            const photo = photoList[i];
+            const safeName = photo.filename.length > 35 ? photo.filename.substring(0, 32) + '...' : photo.filename;
             html += `
-                <div class="photo-card" data-url="${photo.url}" data-name="${photo.name.replace(/[\\"']/g, '')}">
-                    <div class="photo-img-container">
-                        <img class="photo-img" src="${photo.url}" alt="${photo.name}" loading="lazy" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1046/1046784.png'">
-                        <div class="photo-overlay">
-                            <span class="photo-name">${escapeHtml(displayName)}</span>
-                            <div class="download-icon" data-download="${photo.url}" data-filename="${photo.name}">⬇️</div>
-                        </div>
+                <div class="photo-card" data-index="${i}" data-filename="${escapeHtmlAttr(photo.filename)}" data-url="${escapeHtmlAttr(photo.fullUrl)}">
+                    <div class="photo-img-wrapper">
+                        <img class="photo-img" src="${photo.fullUrl}" alt="${escapeHtmlAttr(photo.filename)}" loading="lazy" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1046/1046784.png'">
                     </div>
-                    <div class="photo-card-footer">
-                        <span>📸 ${escapeHtml(displayName)}</span>
-                        <button class="single-download-btn" data-url="${photo.url}" data-name="${photo.name}">Télécharger</button>
+                    <div class="photo-info">
+                        <span class="photo-name" title="${escapeHtmlAttr(photo.filename)}">📷 ${escapeHtml(safeName)}</span>
+                        <button class="download-btn" data-filename="${escapeHtmlAttr(photo.filename)}" data-url="${escapeHtmlAttr(photo.fullUrl)}">📥 Télécharger</button>
                     </div>
                 </div>
             `;
         }
-        gridContainer.innerHTML = html;
-        photoCounterSpan.innerHTML = `📷 ${photosList.length} photo${photosList.length > 1 ? 's' : ''}`;
+        photosGrid.innerHTML = html;
         
-        // Ajouter les listeners sur les éléments générés
+        // Ajouter les événements sur chaque carte (ouvrir lightbox) et bouton download
         document.querySelectorAll('.photo-card').forEach(card => {
+            const imgWrapper = card.querySelector('.photo-img-wrapper');
+            const downloadBtn = card.querySelector('.download-btn');
+            const filename = card.getAttribute('data-filename');
             const url = card.getAttribute('data-url');
-            const name = card.getAttribute('data-name');
+            
+            // Click sur la vignette (ou wrapper) pour ouvrir le modal
+            if(imgWrapper) {
+                imgWrapper.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openLightbox(filename, url);
+                });
+            }
+            // Click sur la carte elle-même si on veut
             card.addEventListener('click', (e) => {
-                // éviter si on clique sur bouton download
-                if (e.target.closest('.download-icon') || e.target.closest('.single-download-btn')) return;
-                openModal(url, name);
+                if(e.target === downloadBtn || downloadBtn.contains(e.target)) return;
+                openLightbox(filename, url);
             });
-        });
-        
-        document.querySelectorAll('.download-icon, .single-download-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                let url = btn.getAttribute('data-url');
-                let filename = btn.getAttribute('data-filename') || btn.getAttribute('data-name');
-                if (!filename && url) filename = url.split('/').pop();
-                if (url && filename) downloadPhoto(url, filename);
-            });
+            
+            // Bouton télécharger
+            if(downloadBtn) {
+                downloadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadImage(url, filename);
+                });
+            }
         });
     }
     
     function escapeHtml(str) {
-        if (!str) return '';
+        if(!str) return '';
         return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
             return m;
         });
     }
+    function escapeHtmlAttr(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
     
-    function openModal(url, name) {
+    // Lightbox
+    function openLightbox(filename, url) {
+        currentPhotoFilename = filename;
+        currentPhotoUrl = url;
         modalImage.src = url;
-        currentModalPhotoUrl = url;
-        currentModalPhotoName = name;
-        modal.classList.add('active');
+        lightboxModal.classList.add('active');
     }
     
-    function closeModal() {
-        modal.classList.remove('active');
+    function closeLightbox() {
+        lightboxModal.classList.remove('active');
         modalImage.src = '';
+        currentPhotoFilename = null;
+        currentPhotoUrl = null;
     }
     
-    async function loadAndRender() {
-        if (isLoading) return;
-        isLoading = true;
-        gridContainer.innerHTML = '<div class="loading-spinner">🎵 Récupération des photos du bal...</div>';
-        
-        const success = await fetchPhotosFromIndex();
-        if (!success && photosList.length === 0) {
-            gridContainer.innerHTML = `<div class="empty-state">⚠️ Impossible de charger les photos. Vérifiez que le dossier "/photos/" contient bien un index.html listant les images.<br><br>📁 Structure attendue : /photos/index.html + /photos/images/*.jpg</div>`;
-            photoCounterSpan.innerHTML = `📷 0 photo`;
-        } else {
-            renderGallery();
+    async function downloadAllPhotos() {
+        if(!photoList.length) {
+            showToast("Aucune photo à télécharger");
+            return;
         }
-        isLoading = false;
+        showToast(`📦 Démarrage du téléchargement de ${photoList.length} photo(s)...`);
+        for(let i = 0; i < photoList.length; i++) {
+            const photo = photoList[i];
+            // Petit délai pour éviter que le navigateur bloque
+            await new Promise(resolve => setTimeout(resolve, 400));
+            downloadImage(photo.fullUrl, photo.filename);
+        }
+        showToast(`✅ ${photoList.length} photo(s) téléchargée(s) !`);
     }
     
-    // Événements modals
-    modalCloseBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-    modalDownloadBtn.addEventListener('click', () => {
-        if (currentModalPhotoUrl) {
-            downloadPhoto(currentModalPhotoUrl, currentModalPhotoName);
-        }
-    });
-    
-    // Boutons toolbar
+    // Event listeners
     refreshBtn.addEventListener('click', () => {
-        loadAndRender();
+        loadPhotos();
     });
+    
     downloadAllBtn.addEventListener('click', () => {
-        if (photosList.length) downloadAllAsZip();
-        else showToast("Aucune photo à télécharger", true);
+        downloadAllPhotos();
+    });
+    
+    modalCloseBtn.addEventListener('click', closeLightbox);
+    modalDownloadBtn.addEventListener('click', () => {
+        if(currentPhotoFilename && currentPhotoUrl) {
+            downloadImage(currentPhotoUrl, currentPhotoFilename);
+        }
+    });
+    lightboxModal.addEventListener('click', (e) => {
+        if(e.target === lightboxModal) closeLightbox();
+    });
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && lightboxModal.classList.contains('active')) {
+            closeLightbox();
+        }
     });
     
     // Chargement initial
-    loadAndRender();
-    
-    // Avertissement si JSZip doit être chargé plus tard, on le précharge ?
-    // On le précharge au premier clic sur tout télécharger.
-    // Le code télécharge dynamiquement JSZip au besoin.
+    loadPhotos();
 </script>
 </body>
 </html>
